@@ -7,6 +7,7 @@ cpu = target_machine.cpu_family()
 avx2_support = false
 avx512f_support = false
 sve_support = false
+amx_support = false
 
 if get_option('ios')
 	message('Configured for iOS')
@@ -31,6 +32,8 @@ else
 			avx2_support = true
 		elif line == 'AVX512F detected'
 			avx512f_support = true
+		elif line == 'AMX detected'
+			amx_support = true
 		elif line == 'SVE detected'
 			sve_support = true
 		endif
@@ -83,6 +86,18 @@ if cpu == 'x86_64'
 		cpp_args: ['-DAVX512', '-mavx512f'],
 		link_with: utils,
 		install: true)
+	div_avx512 = executable('div_avx512',
+		'src/div.cpp',
+		cpp_args: ['-DAVX512', '-mavx512f'],
+		link_with: utils,
+		install: true)
+	endif
+	if amx_support
+		load_amx = executable('load_amx',
+			'src/load_amx.cpp',
+			cpp_args: ['-DAMX', '-mamx'],
+			link_with: utils,
+			install: true)
 	endif
 elif cpu == 'aarch64'
 	# gather_neon = executable('gather_neon',
@@ -116,6 +131,17 @@ elif cpu == 'aarch64'
 			cpp_args: ['-DSVE_FP64_FMA', '-march=armv8.6-a+sve'],
 			link_with: utils,
 			install: true)
+		# SVE FP64 load/store inline assembly tests
+		sve_fp64_load = executable('sve_fp64_load',
+			'src/ldst_aarch64.cpp',
+			cpp_args: ['-DSVE_FP64_LOAD', '-march=armv8.6-a+sve'],
+			link_with: utils,
+			install: true)
+		sve_fp64_store = executable('sve_fp64_store',
+			'src/ldst_aarch64.cpp',
+			cpp_args: ['-DSVE_FP64_STORE', '-march=armv8.6-a+sve'],
+			link_with: utils,
+			install: true)
 	endif
 	neon_fp32_add = executable('neon_fp32_add',
 		'src/simd_aarch64.cpp',
@@ -135,6 +161,17 @@ elif cpu == 'aarch64'
 	neon_fp64_fma = executable('neon_fp64_fma',
 		'src/simd_aarch64.cpp',
 		cpp_args: ['-DNEON_FP64_FMA'],
+		link_with: utils,
+		install: true)
+	# NEON FP64 load/store inline assembly tests
+	neon_fp64_load = executable('neon_fp64_load',
+		'src/ldst_aarch64.cpp',
+		cpp_args: ['-DNEON_FP64_LOAD'],
+		link_with: utils,
+		install: true)
+	neon_fp64_store = executable('neon_fp64_store',
+		'src/ldst_aarch64.cpp',
+		cpp_args: ['-DNEON_FP64_STORE'],
 		link_with: utils,
 		install: true)
 endif

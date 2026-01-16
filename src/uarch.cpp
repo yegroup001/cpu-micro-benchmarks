@@ -77,6 +77,7 @@ enum uarch get_uarch_inner() {
   bool sve = false;
   bool avx512f = false;
   bool avx2 = false;
+  bool amx = false;
 
   while (std::getline(t, line)) {
     size_t pos = line.find(':');
@@ -101,6 +102,9 @@ enum uarch get_uarch_inner() {
         if (value.find("avx2") != std::string::npos && !avx2) {
           avx2 = true;
         }
+        if (value.find("amx") != std::string::npos && !amx) {
+          amx = true;
+        }
       } else if (key == "Features") {
         if (value.find("sve") != std::string::npos && !sve) {
           sve = true;
@@ -119,6 +123,9 @@ enum uarch get_uarch_inner() {
   }
   if (sve) {
     fprintf(stdout, "SVE detected\n");
+  }
+  if (amx) {
+    fprintf(stdout, "AMX detected\n");
   }
 
   if (family == 6 && model == 183) {

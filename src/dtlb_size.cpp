@@ -159,7 +159,7 @@ void test(int size, int iterations, bool perf) {
 }
 
 int main(int argc, char *argv[]) {
-  fp = fopen("dtlb_size.csv", "w");
+  fp = fopen_outputs_file("dtlb_size.csv", "w");
   assert(fp);
   bind_to_core();
 

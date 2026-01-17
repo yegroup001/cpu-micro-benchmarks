@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
 
   bind_to_core();
   setup_perf_cond_branch_misses();
-  FILE *fp = fopen("pht_tag_bits_xor_phr.csv", "w");
+  FILE *fp = fopen_outputs_file("pht_tag_bits_xor_phr.csv", "w");
   assert(fp);
 
   uint32_t *buffer = new uint32_t[loop_count + 1];

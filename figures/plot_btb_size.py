@@ -1,5 +1,9 @@
 from matplotlib import pyplot as plt
 import csv
+from pathlib import Path
+
+OUT = Path(__file__).resolve().parents[1] / "outputs"
+OUT.mkdir(parents=True, exist_ok=True)
 
 # Mimic https://chipsandcheese.com/2023/10/27/cortex-x2-arm-aims-high/
 
@@ -8,7 +12,7 @@ stride_data = []
 min_data = []
 avg_data = []
 
-with open('btb_size.csv', newline='') as f:
+with open(OUT / 'btb_size.csv', newline='') as f:
 	r = csv.DictReader(f)
 	for row in r:
 		size_data.append(float(row["size"]))
@@ -33,4 +37,4 @@ plt.grid()
 plt.xlabel('Branches in loop')
 plt.ylabel('Cycles Per Branch')
 plt.legend()
-plt.savefig('plot_btb_size.png')
+plt.savefig(OUT / 'plot_btb_size.png')

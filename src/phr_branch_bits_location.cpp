@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
   setup_perf_cond_branch_misses();
 #endif
 
-  FILE *fp = fopen("phr_branch_bits_location.csv", "w");
+  FILE *fp = fopen_outputs_file("phr_branch_bits_location.csv", "w");
   assert(fp);
 
   uint32_t *buffer = new uint32_t[loop_count + 1];

@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string>
 
 // detect host machine if not set
 #if !defined(HOST_AARCH64) && !defined(HOST_AMD64) && !defined(HOST_LOONGARCH64)
@@ -31,6 +32,14 @@
 std::map<const char *, size_t> get_cache_sizes();
 char **generate_random_pointer_chasing(size_t size,
                                        size_t granularity = (size_t)-1);
+
+// project paths
+// Resolve the repository root (best effort) and a stable outputs directory.
+// The outputs directory is "<repo>/outputs".
+std::string get_repo_root();
+std::string get_outputs_dir();
+std::string outputs_file_path(const std::string &filename);
+FILE *fopen_outputs_file(const char *filename, const char *mode);
 
 // get time or cycles
 // unit: ns or cycle

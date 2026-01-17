@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
 #else
   setup_perf_cond_branch_misses();
 #endif
-  FILE *fp = fopen("pht_index_tag_bits.csv", "w");
+  FILE *fp = fopen_outputs_file("pht_index_tag_bits.csv", "w");
   assert(fp);
 
   uint32_t *buffer = new uint32_t[loop_count + 1];

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include "include/utils.h"
 
 extern void itlb_size(FILE *fp);
 extern bool avoid_hugepage_merging;
@@ -29,7 +30,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  FILE *fp = fopen("itlb_size.csv", "w");
+  FILE *fp = fopen_outputs_file("itlb_size.csv", "w");
   assert(fp);
   itlb_size(fp);
   printf("Results are written to itlb_size.csv\n");

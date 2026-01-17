@@ -63,6 +63,10 @@ int main() {
     printf("-DINTEL\n");
     printf("-DINTEL_AHYBRID\n");
     break;
+  case willow_cove:
+    printf("-DINTEL\n");
+    printf("-DINTEL_WILLOWCOVE\n");
+    break;
   case gracemont:
     printf("-DINTEL\n");
     printf("-DINTEL_AHYBRID\n");

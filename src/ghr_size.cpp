@@ -1,10 +1,11 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "include/utils.h"
 
 extern void ghr_size(FILE *fp);
 int main(int argc, char *argv[]) {
-  FILE *fp = fopen("ghr_size.csv", "w");
+  FILE *fp = fopen_outputs_file("ghr_size.csv", "w");
   assert(fp);
   ghr_size(fp);
   printf("Results are written to ghr_size.csv\n");

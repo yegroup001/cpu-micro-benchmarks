@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
   };
 
   bind_to_core();
-  FILE *fp = fopen("find_branch_misses_pmu.csv", "w");
+  FILE *fp = fopen_outputs_file("find_branch_misses_pmu.csv", "w");
   assert(fp);
 
   uint32_t *buffer = new uint32_t[loop_count + 1];

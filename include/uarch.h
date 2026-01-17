@@ -40,6 +40,7 @@ enum uarch {
 
   // intel
   golden_cove,
+  willow_cove,
   gracemont,
   sunny_cove,
   skylake,

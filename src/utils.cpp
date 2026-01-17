@@ -8,10 +8,13 @@
 #include <random>
 #include <regex>
 #include <stdarg.h>
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
+#include <limits.h>
+#include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/time.h>
 #include <unistd.h>
@@ -42,6 +45,142 @@
 #ifndef __has_builtin
 #define __has_builtin(x) 0
 #endif
+
+static bool file_exists(const std::string &path) {
+  return access(path.c_str(), F_OK) == 0;
+}
+
+static std::string path_dirname(const std::string &path) {
+  if (path.empty())
+    return ".";
+  size_t end = path.find_last_of('/');
+  if (end == std::string::npos)
+    return ".";
+  if (end == 0)
+    return "/";
+  return path.substr(0, end);
+}
+
+static std::string path_parent(const std::string &path) {
+  std::string dir = path;
+  while (dir.size() > 1 && dir.back() == '/') {
+    dir.pop_back();
+  }
+  return path_dirname(dir);
+}
+
+static bool mkdir_p(const std::string &path) {
+  if (path.empty())
+    return false;
+  if (path == "/")
+    return true;
+
+  std::string current;
+  current.reserve(path.size());
+  size_t i = 0;
+  if (path[0] == '/') {
+    current = "/";
+    i = 1;
+  }
+
+  for (; i <= path.size(); i++) {
+    if (i == path.size() || path[i] == '/') {
+      if (current.empty())
+        continue;
+
+      // Skip creating root
+      if (current != "/") {
+        if (mkdir(current.c_str(), 0755) != 0 && errno != EEXIST) {
+          return false;
+        }
+      }
+    }
+
+    if (i < path.size()) {
+      current.push_back(path[i]);
+    }
+  }
+  return true;
+}
+
+static std::string find_repo_root_from(const std::string &start_dir) {
+  std::string dir = start_dir;
+  for (int i = 0; i < 32; i++) {
+    if (file_exists(dir + "/meson.build") && file_exists(dir + "/src") &&
+        file_exists(dir + "/figures")) {
+      return dir;
+    }
+    std::string parent = path_parent(dir);
+    if (parent == dir)
+      break;
+    dir = parent;
+  }
+  return "";
+}
+
+static std::string get_cwd() {
+  char buf[PATH_MAX];
+  if (getcwd(buf, sizeof(buf))) {
+    return std::string(buf);
+  }
+  return ".";
+}
+
+static std::string get_executable_path_best_effort() {
+#ifdef __linux__
+  char buf[PATH_MAX];
+  ssize_t len = readlink("/proc/self/exe", buf, sizeof(buf) - 1);
+  if (len > 0) {
+    buf[len] = 0;
+    return std::string(buf);
+  }
+#endif
+  return "";
+}
+
+std::string get_repo_root() {
+  const char *override = getenv("CPU_MICRO_BENCHMARKS_ROOT");
+  if (override && override[0]) {
+    return std::string(override);
+  }
+
+  std::string exe = get_executable_path_best_effort();
+  if (!exe.empty()) {
+    std::string from_exe = find_repo_root_from(path_dirname(exe));
+    if (!from_exe.empty())
+      return from_exe;
+  }
+
+  std::string from_cwd = find_repo_root_from(get_cwd());
+  if (!from_cwd.empty())
+    return from_cwd;
+
+  // fallback: best effort
+  return ".";
+}
+
+std::string get_outputs_dir() {
+  std::string dir = get_repo_root();
+  if (!dir.empty() && dir.back() != '/') {
+    dir += "/";
+  }
+  dir += "outputs";
+  mkdir_p(dir);
+  return dir;
+}
+
+std::string outputs_file_path(const std::string &filename) {
+  std::string dir = get_outputs_dir();
+  if (!dir.empty() && dir.back() != '/') {
+    dir += "/";
+  }
+  return dir + filename;
+}
+
+FILE *fopen_outputs_file(const char *filename, const char *mode) {
+  std::string path = outputs_file_path(filename);
+  return fopen(path.c_str(), mode);
+}
 
 std::map<const char *, size_t> get_cache_sizes() {
   std::map<const char *, size_t> result;

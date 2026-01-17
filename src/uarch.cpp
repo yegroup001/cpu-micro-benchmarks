@@ -135,6 +135,9 @@ enum uarch get_uarch_inner() {
   } else if (family == 6 && model == 151) {
     fprintf(stderr, "Intel Alder Lake detected\n");
     return golden_cove;
+  } else if (family == 6 && model == 140) {
+    fprintf(stderr, "Intel Tiger Lake detected\n");
+    return willow_cove;
   } else if (family == 6 && model == 106) {
     fprintf(stderr, "Intel Ice Lake detected\n");
     return sunny_cove;

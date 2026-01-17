@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
   setup_perf_cond_branch_misses();
 #endif
 
-  FILE *fp = fopen("phr_target_bits_location.csv", "w");
+  FILE *fp = fopen_outputs_file("phr_target_bits_location.csv", "w");
   assert(fp);
 
   printf("Using %s\n", use_jit ? "JIT mode" : "pregenerated assembly");

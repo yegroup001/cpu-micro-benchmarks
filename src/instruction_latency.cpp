@@ -110,7 +110,7 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  FILE *fp = fopen("instruction_latency.csv", "w");
+  FILE *fp = fopen_outputs_file("instruction_latency.csv", "w");
   assert(fp);
   fprintf(fp, "name,latency,throughput\n");
   for (auto pair : info) {

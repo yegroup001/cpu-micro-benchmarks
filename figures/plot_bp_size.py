@@ -1,13 +1,17 @@
 from matplotlib import pyplot as plt
 import csv
 import numpy as np
+from pathlib import Path
+
+OUT = Path(__file__).resolve().parents[1] / "outputs"
+OUT.mkdir(parents=True, exist_ok=True)
 
 size_data = []
 history_data = []
 min_data = []
 avg_data = []
 
-with open('bp_size.csv', newline='') as f:
+with open(OUT / 'bp_size.csv', newline='') as f:
 	r = csv.DictReader(f)
 	for row in r:
 		size_data.append(float(row["size"]))
@@ -26,4 +30,4 @@ plt.yticks(range(len(yticks)), yticks)
 
 plt.xlabel('Pattern Length')
 plt.ylabel('Branch Num')
-plt.savefig('plot_bp_size.png')
+plt.savefig(OUT / 'plot_bp_size.png')

@@ -1,12 +1,16 @@
 from matplotlib import pyplot as plt
 import csv
+from pathlib import Path
+
+OUT = Path(__file__).resolve().parents[1] / "outputs"
+OUT.mkdir(parents=True, exist_ok=True)
 
 size_data = []
 time_data = []
 llc_miss_data = []
 llc_load_data = []
 
-with open('memory_latency.csv', newline='') as f:
+with open(OUT / 'memory_latency.csv', newline='') as f:
 	r = csv.reader(f)
 	for row in r:
 		if row[0] == "size":
@@ -34,4 +38,4 @@ ax2.set_xscale('log')
 ax2.set_ylabel('LLC Load/Miss per Access')
 ax2.set_xlabel('Memory Block Size (B)')
 
-plt.savefig('plot_memory_latency.png')
+plt.savefig(OUT / 'plot_memory_latency.png')

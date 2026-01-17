@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
   if (record_cond_branch_misses) {
     setup_perf_cond_branch_misses();
   }
-  FILE *fp = fopen("bp_size.csv", "w");
+  FILE *fp = fopen_outputs_file("bp_size.csv", "w");
   assert(fp);
 
   if (record_cond_branch_misses) {

@@ -31,6 +31,10 @@ enum uarch {
   arm64_begin = firestorm,
   arm64_end = unknown_arm64,
 
+  // riscv64
+  riscv64,
+  unknown_riscv64,
+
   // loongarch
   la464,
   la664,

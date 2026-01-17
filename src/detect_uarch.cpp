@@ -109,6 +109,9 @@ int main() {
     break;
   case unknown_amd64:
     break;
+  case riscv64:
+    printf("-DRISCV64\n");
+    break;
   case la464:
     printf("-DLA464\n");
   case unknown_loongarch64:

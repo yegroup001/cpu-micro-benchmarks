@@ -54,6 +54,7 @@ utils_native = static_library('utils_native', 'src/utils.cpp', 'src/uarch.cpp', 
 
 simple_progs = [
 	'dtlb_size',
+	'memory_bandwidth',
 	'memory_latency',
 	'instruction_latency',
 	'ipc',

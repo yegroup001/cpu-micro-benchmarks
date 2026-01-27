@@ -186,4 +186,41 @@ INSTR_TEST(lasx_fp_xvfmadd_d_2, "xvfmadd.d $xr0, $xr1, $xr0, $xr3\n")
 INSTR_TEST(lasx_fp_xvfmadd_d_3, "xvfmadd.d $xr0, $xr0, $xr2, $xr3\n")
 INSTR_TEST(lasx_fp_xvfmadd_d_tp, "xvfmadd.d $xr0, $xr1, $xr2, $xr3\n")
 
+#elif defined(__riscv)
+
+INSTR_TEST(unit, "add x5, x5, x5\n", "x5")
+INSTR_TEST(int_add, "add x5, x6, x5\n", "x5")
+INSTR_TEST(int_add_tp, "add x5, x6, x7\n", "x5")
+INSTR_TEST(int_sub, "sub x5, x6, x5\n", "x5")
+INSTR_TEST(int_sub_tp, "sub x5, x6, x7\n", "x5")
+
+INSTR_TEST(int_and, "and x5, x6, x5\n", "x5")
+INSTR_TEST(int_and_tp, "and x5, x6, x7\n", "x5")
+INSTR_TEST(int_or, "or x5, x6, x5\n", "x5")
+INSTR_TEST(int_or_tp, "or x5, x6, x7\n", "x5")
+INSTR_TEST(int_xor, "xor x5, x6, x5\n", "x5")
+INSTR_TEST(int_xor_tp, "xor x5, x6, x7\n", "x5")
+INSTR_TEST(int_sll, "sll x5, x5, x6\n", "x5")
+INSTR_TEST(int_sll_tp, "sll x5, x6, x7\n", "x5")
+INSTR_TEST(int_srl, "srl x5, x5, x6\n", "x5")
+INSTR_TEST(int_srl_tp, "srl x5, x6, x7\n", "x5")
+INSTR_TEST(int_sra, "sra x5, x5, x6\n", "x5")
+INSTR_TEST(int_sra_tp, "sra x5, x6, x7\n", "x5")
+INSTR_TEST(int_slli, "slli x5, x5, 1\n", "x5")
+INSTR_TEST(int_srli, "srli x5, x5, 1\n", "x5")
+INSTR_TEST(int_srai, "srai x5, x5, 1\n", "x5")
+INSTR_TEST(int_slt, "slt x5, x6, x5\n", "x5")
+INSTR_TEST(int_sltu, "sltu x5, x6, x5\n", "x5")
+
+INSTR_TEST(int_addw, "addw x5, x6, x5\n", "x5")
+INSTR_TEST(int_addw_tp, "addw x5, x6, x7\n", "x5")
+
+INSTR_TEST(int_subw, "subw x5, x6, x5\n", "x5")
+INSTR_TEST(int_subw_tp, "subw x5, x6, x7\n", "x5")
+
+INSTR_TEST(int_sllw, "sllw x5, x5, x6\n", "x5")
+INSTR_TEST(int_srlw, "srlw x5, x5, x6\n", "x5")
+INSTR_TEST(int_sraw, "sraw x5, x5, x6\n", "x5")
+
+
 #endif

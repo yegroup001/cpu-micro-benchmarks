@@ -222,6 +222,8 @@ enum uarch get_uarch_inner() {
   return unknown_amd64;
 #elif defined(HOST_LOONGARCH64)
   return unknown_loongarch64;
+#elif defined(__riscv)
+  return riscv64;
 #endif
   return unknown;
 }

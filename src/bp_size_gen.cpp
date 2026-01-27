@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
     fprintf(fp, ".global bp_size_%d\n", size);
     fprintf(fp, ".balign 32\n");
     fprintf(fp, "bp_size_%d:\n", size);
-#ifdef HOST_AARCH64
+  #ifdef HOST_AARCH64
     fprintf(fp, "\teor x16, x16, x16\n");
     fprintf(fp, "\teor x15, x15, x15\n");
     fprintf(fp, "\teor x12, x12, x12\n");
@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
     fprintf(fp, "\t2:\n");
 
     fprintf(fp, "\tret\n");
-#elif defined(HOST_AMD64)
+  #elif defined(HOST_AMD64)
     // rdi: loop count
     // rsi: pattern array
     // rdx: history length
@@ -109,6 +109,42 @@ int main(int argc, char *argv[]) {
     fprintf(fp, "\t2:\n");
 
     fprintf(fp, "\tpop %%rbx\n");
+    fprintf(fp, "\tret\n");
+#elif defined(__riscv)
+    // a0: loop count
+    // a1: pattern array[branch][history] as pointer to pointers
+    // a2: history length
+
+    // zero history and indices
+    fprintf(fp, "\taddi t1, zero, 0\n"); // history index
+    fprintf(fp, "\t1:\n");
+    fprintf(fp, "\taddi t0, zero, 0\n"); // branch index
+
+    for (int i = 0; i < size; i++) {
+      // load pointer to this branch's history
+      fprintf(fp, "\tslli t2, t0, 3\n");
+      fprintf(fp, "\tadd t2, a1, t2\n");
+      fprintf(fp, "\tld t2, 0(t2)\n");
+      // load history[t1]
+      fprintf(fp, "\tslli t3, t1, 2\n");
+      fprintf(fp, "\tadd t3, t2, t3\n");
+      fprintf(fp, "\tlw t4, 0(t3)\n");
+      // data-dependent conditional branch
+      fprintf(fp, "\tbeqz t4, 2f\n");
+      fprintf(fp, "\tnop\n");
+      fprintf(fp, "\t2:\n");
+      fprintf(fp, "\taddi t0, t0, 1\n");
+    }
+
+    // increment history index t1, wrap by a2
+    fprintf(fp, "\taddi t1, t1, 1\n");
+    fprintf(fp, "\tblt t1, a2, 3f\n");
+    fprintf(fp, "\taddi t1, zero, 0\n");
+    fprintf(fp, "\t3:\n");
+
+    fprintf(fp, "\taddi a0, a0, -1\n");
+    fprintf(fp, "\tbnez a0, 1b\n");
+
     fprintf(fp, "\tret\n");
 #endif
   }

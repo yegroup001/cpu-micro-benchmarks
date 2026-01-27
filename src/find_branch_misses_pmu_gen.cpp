@@ -177,6 +177,70 @@ int main(int argc, char *argv[]) {
     fprintf(fp, "\tbnez $a0, 1b\n");
 
     fprintf(fp, "\tret\n");
+#elif defined(__riscv)
+    // RISC-V: mirror the three patterns from other arches.
+    // a0: loop count, a1: buffer pointer (uint32_t *)
+
+    fprintf(fp, "\t1:\n");
+
+    // flush phr
+    for (int i = 0; i < 200; i++) {
+      fprintf(fp, "\tj 2f\n");
+      fprintf(fp, "\t2:\n");
+    }
+
+    if (pattern == 0) {
+      // conditional branch miss
+      fprintf(fp, "\tslli t0, a0, 2\n");
+      fprintf(fp, "\tadd t0, a1, t0\n");
+      fprintf(fp, "\tlw t1, 0(t0)\n");
+      fprintf(fp, "\tbeqz t1, 2f\n");
+      fprintf(fp, "\tnop\n");
+      fprintf(fp, "\t2:\n");
+    } else if (pattern == 1) {
+      // indirect branch misses
+      fprintf(fp, "\tslli t0, a0, 2\n");
+      fprintf(fp, "\tadd t0, a1, t0\n");
+      fprintf(fp, "\tlw t1, 0(t0)\n");
+      fprintf(fp, "\tslli t1, t1, 2\n");
+      fprintf(fp, "\tla t2, 2f\n");
+      fprintf(fp, "\tadd t2, t2, t1\n");
+      fprintf(fp, "\tjalr zero, t2, 0\n");
+      fprintf(fp, "\t2:\n");
+      fprintf(fp, "\tnop\n");
+    } else if (pattern == 2) {
+      // conditional + indirect branch miss
+
+      // conditional branch miss
+      fprintf(fp, "\tslli t0, a0, 2\n");
+      fprintf(fp, "\tadd t0, a1, t0\n");
+      fprintf(fp, "\tlw t1, 0(t0)\n");
+      fprintf(fp, "\tbeqz t1, 2f\n");
+      fprintf(fp, "\tnop\n");
+      fprintf(fp, "\t2:\n");
+
+      // flush phr again
+      for (int i = 0; i < 500; i++) {
+        fprintf(fp, "\tj 2f\n");
+        fprintf(fp, "\t2:\n");
+      }
+
+      // indirect branch misses
+      fprintf(fp, "\tslli t0, a0, 2\n");
+      fprintf(fp, "\tadd t0, a1, t0\n");
+      fprintf(fp, "\tlw t1, 0(t0)\n");
+      fprintf(fp, "\tslli t1, t1, 2\n");
+      fprintf(fp, "\tla t2, 2f\n");
+      fprintf(fp, "\tadd t2, t2, t1\n");
+      fprintf(fp, "\tjalr zero, t2, 0\n");
+      fprintf(fp, "\t2:\n");
+      fprintf(fp, "\tnop\n");
+    }
+
+    fprintf(fp, "\taddi a0, a0, -1\n");
+    fprintf(fp, "\tbnez a0, 1b\n");
+
+    fprintf(fp, "\tret\n");
 #endif
   }
 

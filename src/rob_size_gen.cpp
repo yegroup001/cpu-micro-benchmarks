@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
     fprintf(fp, ".global rob_size_%d\n", size);
     fprintf(fp, ".align 4\n");
     fprintf(fp, "rob_size_%d:\n", size);
-#ifdef HOST_AARCH64
+  #ifdef HOST_AARCH64
     // int sqrt_count = 8;
     fprintf(fp, "\tldr x3, [x0]\n");
     fprintf(fp, "\t1:\n");
@@ -62,6 +62,26 @@ int main(int argc, char *argv[]) {
     fprintf(fp, "\taddi.d $a2, $a2, -1\n");
     fprintf(fp, "\tbne $a2, $zero, 1b\n");
     fprintf(fp, "\tst.d $a3, $a0, 0\n");
+    fprintf(fp, "\tret\n");
+#elif defined(__riscv)
+    // a0: &buffer1, a1: &buffer2, a2: loop count
+    fprintf(fp, "\tld t0, 0(a0)\n");
+    fprintf(fp, "\tld t1, 0(a1)\n");
+    fprintf(fp, "\taddi t2, a2, 0\n");
+    fprintf(fp, "\t1:\n");
+    for (int i = 0; i < repeat; i++) {
+      fprintf(fp, "\tld t0, 0(t0)\n");
+      for (int j = 0; j < size - 1; j++) {
+        fprintf(fp, "\tnop\n");
+      }
+      fprintf(fp, "\tld t1, 0(t1)\n");
+      // simple fence to limit speculation, similar intent to lfence/mfence
+      fprintf(fp, "\tfence iorw, iorw\n");
+    }
+    fprintf(fp, "\taddi t2, t2, -1\n");
+    fprintf(fp, "\tbnez t2, 1b\n");
+    fprintf(fp, "\tsd t0, 0(a0)\n");
+    fprintf(fp, "\tsd t1, 0(a1)\n");
     fprintf(fp, "\tret\n");
 #endif
   }

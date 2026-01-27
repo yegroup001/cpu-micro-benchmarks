@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
                 stride);
         fprintf(fp, ".balign %ld\n", stride);
         fprintf(fp, "btb_size_basic_%d_%ld_%ld:\n", pattern, size, stride);
-#ifdef HOST_AARCH64
+      #ifdef HOST_AARCH64
         fprintf(fp, "\t1:\n");
         // the last loop is bne 1b
         for (int i = 0; i < (int)size - 1; i++) {
@@ -100,6 +100,24 @@ int main(int argc, char *argv[]) {
         }
         fprintf(fp, "\tdec %%rdi\n");
         fprintf(fp, "\tjne 1b\n");
+        fprintf(fp, "\tret\n");
+#elif defined(__riscv)
+        // a0: loop count
+        fprintf(fp, "\t1:\n");
+        for (int i = 0; i < (int)size - 1; i++) {
+          if (pattern == 0 || (pattern == 2 && i % 2 == 0)) {
+            // unconditional
+            fprintf(fp, "\tj 2f\n");
+          } else if (pattern == 1 || (pattern == 2 && i % 2 == 1)) {
+            // conditional on a0 (any stable predicate is fine)
+            fprintf(fp, "\tbeqz a0, 2f\n");
+          }
+          // fill nops so that branch instructions have the specified stride
+          fprintf(fp, "\t.balign %ld\n", stride);
+          fprintf(fp, "\t2:\n");
+        }
+        fprintf(fp, "\taddi a0, a0, -1\n");
+        fprintf(fp, "\tbnez a0, 1b\n");
         fprintf(fp, "\tret\n");
 #endif
       }

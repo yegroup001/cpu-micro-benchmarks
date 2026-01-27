@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
     fprintf(fp, ".global ras_size_%d\n", size);
     fprintf(fp, ".balign 64\n");
     fprintf(fp, "ras_size_%d:\n", size);
-#ifdef HOST_AARCH64
+  #ifdef HOST_AARCH64
     // save lr
     fprintf(fp, "\tsub sp, sp, #0x20\n");
     fprintf(fp, "\tstp x29, x30, [sp, #0x10]\n");
@@ -36,7 +36,16 @@ int main(int argc, char *argv[]) {
     fprintf(fp, "\tdec %%rdi\n");
     fprintf(fp, "\tjne 1b\n");
     fprintf(fp, "\tret\n");
-#endif
+  #elif defined(__riscv)
+    fprintf(fp, "\t1:\n");
+    // call function chain of depth `size-1`
+    fprintf(fp, "\taddi a0, a0, 0\n\t# keep loop count in a0\n");
+    fprintf(fp, "\taddi a1, zero, %d\n", size - 1);
+    fprintf(fp, "\tjal ra, ras_func_%d\n", size - 1);
+    fprintf(fp, "\taddi a0, a0, -1\n");
+    fprintf(fp, "\tbnez a0, 1b\n");
+    fprintf(fp, "\tret\n");
+  #endif
 
     // inner function
     fprintf(fp, ".global ras_func_%d\n", size);
@@ -61,7 +70,14 @@ int main(int argc, char *argv[]) {
 #elif defined(HOST_AMD64)
     fprintf(fp, "\tcall ras_func_%d\n", size - 1);
     fprintf(fp, "\tret\n");
-#endif
+  #elif defined(__riscv)
+    // a1 carries remaining depth
+    fprintf(fp, "\taddi a1, a1, -1\n");
+    fprintf(fp, "\tbltz a1, 1f\n");
+    fprintf(fp, "\tjal ra, ras_func_%d\n", size - 1);
+    fprintf(fp, "\t1:\n");
+    fprintf(fp, "\tret\n");
+  #endif
   }
 
   // recursion base

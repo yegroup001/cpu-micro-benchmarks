@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
     fprintf(fp, ".global ghr_size_%d\n", size);
     fprintf(fp, ".balign 32\n");
     fprintf(fp, "ghr_size_%d:\n", size);
-#ifdef HOST_AARCH64
+  #ifdef HOST_AARCH64
     fprintf(fp, "\t1:\n");
 
     // always taken branches ahead
@@ -71,6 +71,28 @@ int main(int argc, char *argv[]) {
     // restore regs
     fprintf(fp, "\tpop %%rcx\n");
     fprintf(fp, "\tpop %%rbx\n");
+    fprintf(fp, "\tret\n");
+#elif defined(__riscv)
+    // a0: loop count
+    // a1: dummy pointer used for always-taken branches
+    fprintf(fp, "\t1:\n");
+
+    // always taken branches ahead
+    // use x0&1 like other arches to vary direction a bit if needed
+    for (int i = 0; i < size - 2; i++) {
+      fprintf(fp, "\tbeq x0, x0, 2f\n");
+      fprintf(fp, "\t2:\n");
+    }
+
+    // taken/not taken based on a0 & 1
+    fprintf(fp, "\tandi t0, a0, 1\n");
+    fprintf(fp, "\tbeqz t0, 3f\n");
+    fprintf(fp, "\tnop\n");
+    fprintf(fp, "\t3:\n");
+
+    fprintf(fp, "\taddi a0, a0, -1\n");
+    fprintf(fp, "\tbnez a0, 1b\n");
+
     fprintf(fp, "\tret\n");
 #endif
   }

@@ -7,10 +7,15 @@ enum uarch {
 
   // arm64
   // apple
+  // m1
   firestorm,
   icestorm,
+  // m2
   avalanche,
   blizzard,
+  // m4
+  m4_pcore,
+  m4_ecore,
   // qualcomm
   oryon,
   // arm
@@ -35,6 +40,14 @@ enum uarch {
   riscv64,
   unknown_riscv64,
 
+  // ppc64le
+  power8,
+  power9,
+
+  unknown_ppc64le,
+  ppc64le_begin = power8,
+  ppc64le_end = unknown_ppc64le,
+
   // loongarch
   la464,
   la664,
@@ -43,6 +56,7 @@ enum uarch {
   loongarch64_end = unknown_loongarch64,
 
   // intel
+  granite_rapids,
   golden_cove,
   willow_cove,
   gracemont,

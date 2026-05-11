@@ -6,20 +6,37 @@ int main() {
   enum uarch uarch = get_uarch();
   switch (uarch) {
   case firestorm:
+    printf("-DAPPLE_SILICON\n");
+    printf("-DAPPLE_PCORE\n");
     printf("-DAPPLE_M1\n");
     printf("-DAPPLE_M1_FIRESTORM\n");
     break;
   case icestorm:
+    printf("-DAPPLE_SILICON\n");
     printf("-DAPPLE_M1\n");
     printf("-DAPPLE_M1_ICESTORM\n");
     break;
   case avalanche:
+    printf("-DAPPLE_SILICON\n");
+    printf("-DAPPLE_PCORE\n");
     printf("-DAPPLE_M2\n");
     printf("-DAPPLE_M2_AVALANCHE\n");
     break;
   case blizzard:
+    printf("-DAPPLE_SILICON\n");
     printf("-DAPPLE_M2\n");
     printf("-DAPPLE_M2_BLIZZARD\n");
+    break;
+  case m4_pcore:
+    printf("-DAPPLE_SILICON\n");
+    printf("-DAPPLE_PCORE\n");
+    printf("-DAPPLE_M4\n");
+    printf("-DAPPLE_M4_PCORE\n");
+    break;
+  case m4_ecore:
+    printf("-DAPPLE_SILICON\n");
+    printf("-DAPPLE_M4\n");
+    printf("-DAPPLE_M4_ECORE\n");
     break;
   case oryon:
     printf("-DQUALCOMM_ORYON\n");
@@ -43,6 +60,7 @@ int main() {
     printf("-DARM_CORTEX_X1\n");
     break;
   case neoverse_n1:
+    printf("-DNO_FJCVTZS\n");
     printf("-DARM_NEOVERSE_N1\n");
     break;
   case neoverse_v1:
@@ -58,6 +76,10 @@ int main() {
     printf("-DHISILICON_TSV110\n");
     break;
   case unknown_arm64:
+    break;
+  case granite_rapids:
+    printf("-DINTEL\n");
+    printf("-DINTEL_GRANITE_RAPIDS\n");
     break;
   case golden_cove:
     printf("-DINTEL\n");
@@ -115,6 +137,12 @@ int main() {
   case la464:
     printf("-DLA464\n");
   case unknown_loongarch64:
+    break;
+  case power8:
+    printf("-DPOWER8\n");
+  case power9:
+    printf("-DPOWER9\n");
+  case unknown_ppc64le:
     break;
   default:
     assert(false);

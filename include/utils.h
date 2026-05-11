@@ -9,7 +9,7 @@
 #include <string>
 
 // detect host machine if not set
-#if !defined(HOST_AARCH64) && !defined(HOST_AMD64) && !defined(HOST_LOONGARCH64)
+#if !defined(HOST_AARCH64) && !defined(HOST_AMD64) && !defined(HOST_LOONGARCH64) && !defined(HOST_PPC64LE)
 #ifdef __x86_64__
 #define HOST_AMD64
 #endif
@@ -18,6 +18,9 @@
 #endif
 #ifdef __loongarch__
 #define HOST_LOONGARCH64
+#endif
+#if defined(__powerpc64__)
+#define HOST_PPC64LE
 #endif
 #endif
 
@@ -140,6 +143,10 @@ int virt_to_phys_user(uintptr_t *paddr, uintptr_t vaddr);
 #endif
 #ifndef PHRB_BRANCHES
 #define PHRB_BRANCHES 32
+#endif
+
+#ifndef PHRB_BRANCHES
+#define PHRB_BRANCHES 64
 #endif
 
 #endif

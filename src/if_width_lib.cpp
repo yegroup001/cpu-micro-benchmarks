@@ -5,31 +5,28 @@
 #include <vector>
 
 // ref:
-// https://zhuanlan.zhihu.com/p/595585895
+// https://zhuanlan.zhihu.com/p/720136752
 
-// generated in ras_size_gen.cpp
+// generated in if_width_gen.cpp
 // args: loop count
-typedef void (*gadget)(size_t);
+typedef char **(*gadget)(size_t);
 extern "C" {
-extern gadget ras_size_gadgets[];
+extern gadget if_width_gadgets[];
 }
 
-void ras_size(FILE *fp) {
-#ifdef GEM5
-  int loop_count = 10;
-#else
-  int loop_count = 1000;
-#endif
-  // match gen_ras_test
-  int min_size = 1;
-  int max_size = 128;
-  int num_variant = 2;
+void if_width(FILE *fp) {
+  int loop_count = 100000;
+  int min_size = 2;
+  int max_size = 64;
+  int min_pattern = 0;
+  int max_pattern = 1;
 
   bind_to_core();
-  setup_time_or_cycles();
-  fprintf(fp, "variant,size,min,avg,max\n");
+  setup_perf_cycles();
+
   int gadget_index = 0;
-  for (int variant = 0; variant < num_variant; variant++) {
+  fprintf(fp, "pattern,size,min,avg,max\n");
+  for (int pattern = min_pattern; pattern <= max_pattern; pattern++) {
     for (int size = min_size; size <= max_size; size++) {
       std::vector<double> history;
       int iterations = 100;
@@ -38,13 +35,13 @@ void ras_size(FILE *fp) {
       double sum = 0;
       // run several times
       for (int i = 0; i < iterations; i++) {
-        uint64_t begin = get_time_or_cycles();
-        ras_size_gadgets[gadget_index](loop_count);
-        uint64_t elapsed = get_time_or_cycles() - begin;
+        uint64_t begin = perf_read_cycles();
+        if_width_gadgets[gadget_index](loop_count);
+        uint64_t elapsed = perf_read_cycles() - begin;
 
         // skip warmup
         if (i >= 10) {
-          double time = (double)elapsed / loop_count / size;
+          double time = (double)elapsed / loop_count;
           history.push_back(time);
           sum += time;
         }
@@ -61,10 +58,9 @@ void ras_size(FILE *fp) {
           max = history[i];
         }
       }
-      fprintf(fp, "%d,%d,%.2lf,%.2lf,%.2lf\n", variant, size, min,
+      fprintf(fp, "%d,%d,%.2lf,%.2lf,%.2lf\n", pattern, size, min,
               sum / history.size(), max);
       fflush(fp);
     }
   }
-  return;
 }

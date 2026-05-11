@@ -3,6 +3,7 @@ project('cpu-micro-benchmarks', 'cpp',
 cpp_args = []
 link_args = []
 cpu = target_machine.cpu_family()
+cpp = meson.get_compiler('cpp')
 
 avx2_support = false
 avx512f_support = false
@@ -56,13 +57,14 @@ simple_progs = [
 	'dtlb_size',
 	'memory_bandwidth',
 	'memory_latency',
-	'instruction_latency',
 	'ipc',
+	'prefetcher_cacheline',
 ]
 
 foreach p : simple_progs
 	executable(p,
 		'src/' + p + '.cpp',
+		cpp_args: cpp_args,
 		link_with: utils)
 endforeach
 
@@ -75,6 +77,11 @@ if cpu == 'x86_64'
 			cpp_args: ['-DAVX2', '-mavx2'],
 			link_with: utils,
 			install: true)
+		gather_serialize_avx2 = executable('gather_serialize_avx2',
+			'src/gather_serialize.cpp',
+			cpp_args: ['-DAVX2', '-mavx2'],
+			link_with: utils,
+			install: true)
 		div_avx2 = executable('div_avx2',
 			'src/div.cpp',
 			cpp_args: ['-DAVX2', '-mavx2'],
@@ -82,36 +89,45 @@ if cpu == 'x86_64'
 			install: true)
 	endif
 	if avx512f_support
-	gather_avx512 = executable('gather_avx512',
-		'src/gather.cpp',
-		cpp_args: ['-DAVX512', '-mavx512f'],
-		link_with: utils,
-		install: true)
-	div_avx512 = executable('div_avx512',
-		'src/div.cpp',
-		cpp_args: ['-DAVX512', '-mavx512f'],
-		link_with: utils,
-		install: true)
+		gather_avx512 = executable('gather_avx512',
+			'src/gather.cpp',
+			cpp_args: ['-DAVX512', '-mavx512f'],
+			link_with: utils,
+			install: true)
+		gather_serialize_avx512 = executable('gather_serialize_avx512',
+			'src/gather_serialize.cpp',
+			cpp_args: ['-DAVX512', '-mavx512f'],
+			link_with: utils,
+			install: true)
+		div_avx512 = executable('div_avx512',
+			'src/div.cpp',
+			cpp_args: ['-DAVX512', '-mavx512f'],
+			link_with: utils,
+			install: true)
 	endif
 	if amx_support
+		load_amx_args = ['-DAMX']
+		if cpp.has_argument('-mamx')
+			load_amx_args += '-mamx'
+		endif
 		load_amx = executable('load_amx',
 			'src/load_amx.cpp',
-			cpp_args: ['-DAMX', '-mamx'],
+			cpp_args: load_amx_args,
 			link_with: utils,
 			install: true)
 	endif
 elif cpu == 'aarch64'
-	# gather_neon = executable('gather_neon',
-	# 	'src/gather_aarch64.cpp',
-	# 	cpp_args: ['-DNEON'],
-	# 	link_with: utils,
-	# 	install: true)
+	gather_sve = executable('gather_sve',
+		'src/gather.cpp',
+		cpp_args: ['-DSVE', '-march=armv8-a+sve'],
+		link_with: utils,
+		install: true)
+	gather_serialize = executable('gather_serialize',
+		'src/gather_serialize.cpp',
+		cpp_args: ['-DSVE', '-march=armv8-a+sve'],
+		link_with: utils,
+		install: true)
 	if sve_support
-		gather_sve = executable('gather_sve',
-			'src/gather_aarch64.cpp',
-			cpp_args: ['-DSVE', '-march=armv8.6-a+sve'],
-			link_with: utils,
-			install: true)
 		sve_fp32_add = executable('sve_fp32_add',
 			'src/simd_aarch64.cpp',
 			cpp_args: ['-DSVE_FP32_ADD', '-march=armv8.6-a+sve'],
@@ -132,7 +148,6 @@ elif cpu == 'aarch64'
 			cpp_args: ['-DSVE_FP64_FMA', '-march=armv8.6-a+sve'],
 			link_with: utils,
 			install: true)
-		# SVE FP64 load/store inline assembly tests
 		sve_fp64_load = executable('sve_fp64_load',
 			'src/ldst_aarch64.cpp',
 			cpp_args: ['-DSVE_FP64_LOAD', '-march=armv8.6-a+sve'],
@@ -164,7 +179,6 @@ elif cpu == 'aarch64'
 		cpp_args: ['-DNEON_FP64_FMA'],
 		link_with: utils,
 		install: true)
-	# NEON FP64 load/store inline assembly tests
 	neon_fp64_load = executable('neon_fp64_load',
 		'src/ldst_aarch64.cpp',
 		cpp_args: ['-DNEON_FP64_LOAD'],
@@ -178,28 +192,32 @@ elif cpu == 'aarch64'
 endif
 
 
-cpp = meson.get_compiler('cpp')
-cpu = target_machine.cpu_family()
-
 # [gadget name, nasm if available, build as library, has generator]
 progs = [
 	['bp_size', false, false, true],
 	['btb_size_basic', false, true, true],
 	['elimination', false, true, true],
+	['fetch_bandwidth', false, true, true],
 	['find_branch_misses_pmu', false, false, true],
+	['fp_peak', false, false, true],
 	['ghr_size', false, true, true],
+	['if_width', false, true, true],
+	['instruction_latency', false, true, false],
 	['itlb_size', false, true, true],
 	['phr_branch_bits_location', true, false, true],
 	['phr_size', false, true, true],
 	['phr_target_bits_location', true, false, true],
-	['pht_associativity', false, false, true],
+	['phr_branch_target_xor', true, false, true],
+	['pht_associativity', true, false, true],
 	['pht_index_bits_xor', false, false, true],
 	['pht_index_bits_xor_phr', false, false, true],
-	['pht_index_tag_bits', false, false, true],
+	['pht_index_tag_bits', true, false, true],
 	['pht_tag_bits_xor', false, false, true],
 	['pht_tag_bits_xor_phr', false, false, true],
 	['ras_size', false, true, true],
+	['register_file_size', false, true, true],
 	['rob_size', false, false, true],
+	['sched_size', false, true, true],
 ]
 
 foreach p : progs
@@ -287,5 +305,13 @@ if get_option('ios')
 	microbenchmark_lib = static_library('microbenchmark',
 		objects: libs,
 		link_with: utils,
+		install: true)
+endif
+
+if target_machine.system() == 'linux'
+	# required linux affinity api
+	coherency_latency = executable('coherency_latency',
+		'src/coherency_latency.cpp',
+		link_args: ['-pthread'],
 		install: true)
 endif

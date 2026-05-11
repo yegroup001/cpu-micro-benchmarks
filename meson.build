@@ -150,12 +150,12 @@ elif cpu == 'aarch64'
 			install: true)
 		sve_fp64_load = executable('sve_fp64_load',
 			'src/ldst_aarch64.cpp',
-			cpp_args: ['-DSVE_FP64_LOAD', '-march=armv8.6-a+sve'],
+			cpp_args: ['-DSVE_FP64_LOAD', '-march=armv8.6-a+sve', '-O2'],
 			link_with: utils,
 			install: true)
 		sve_fp64_store = executable('sve_fp64_store',
 			'src/ldst_aarch64.cpp',
-			cpp_args: ['-DSVE_FP64_STORE', '-march=armv8.6-a+sve'],
+			cpp_args: ['-DSVE_FP64_STORE', '-march=armv8.6-a+sve', '-O2'],
 			link_with: utils,
 			install: true)
 	endif
@@ -181,12 +181,12 @@ elif cpu == 'aarch64'
 		install: true)
 	neon_fp64_load = executable('neon_fp64_load',
 		'src/ldst_aarch64.cpp',
-		cpp_args: ['-DNEON_FP64_LOAD'],
+		cpp_args: ['-DNEON_FP64_LOAD', '-O2'],
 		link_with: utils,
 		install: true)
 	neon_fp64_store = executable('neon_fp64_store',
 		'src/ldst_aarch64.cpp',
-		cpp_args: ['-DNEON_FP64_STORE'],
+		cpp_args: ['-DNEON_FP64_STORE', '-O2'],
 		link_with: utils,
 		install: true)
 endif

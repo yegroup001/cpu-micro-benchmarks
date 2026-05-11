@@ -72,6 +72,9 @@ int main() {
   case neoverse_v2:
     printf("-DARM_NEOVERSE_V2\n");
     break;
+  case neoverse_v3:
+    printf("-DARM_NEOVERSE_V3\n");
+    break;
   case tsv110:
     printf("-DHISILICON_TSV110\n");
     break;

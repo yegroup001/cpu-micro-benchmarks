@@ -29,6 +29,7 @@ enum uarch {
   neoverse_v1,
   neoverse_n2,
   neoverse_v2,
+  neoverse_v3,
   // hisilicon
   tsv110,
   tsv200m,

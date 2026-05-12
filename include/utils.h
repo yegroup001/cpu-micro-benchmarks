@@ -9,7 +9,7 @@
 #include <string>
 
 // detect host machine if not set
-#if !defined(HOST_AARCH64) && !defined(HOST_AMD64) && !defined(HOST_LOONGARCH64) && !defined(HOST_PPC64LE)
+#if !defined(HOST_AARCH64) && !defined(HOST_AMD64) && !defined(HOST_LOONGARCH64) && !defined(HOST_PPC64LE) && !defined(HOST_RISCV64)
 #ifdef __x86_64__
 #define HOST_AMD64
 #endif
@@ -21,6 +21,9 @@
 #endif
 #if defined(__powerpc64__)
 #define HOST_PPC64LE
+#endif
+#if defined(__riscv)
+#define HOST_RISCV64
 #endif
 #endif
 

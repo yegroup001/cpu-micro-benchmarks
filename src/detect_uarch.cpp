@@ -137,6 +137,14 @@ int main() {
   case riscv64:
     printf("-DRISCV64\n");
     break;
+  case spacemit_x100:
+    printf("-DRISCV64\n");
+    printf("-DSPACEMIT_X100\n");
+    break;
+  case spacemit_a100:
+    printf("-DRISCV64\n");
+    printf("-DSPACEMIT_A100\n");
+    break;
   case la464:
     printf("-DLA464\n");
   case unknown_loongarch64:

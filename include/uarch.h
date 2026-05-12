@@ -38,6 +38,8 @@ enum uarch {
   arm64_end = unknown_arm64,
 
   // riscv64
+  spacemit_x100,
+  spacemit_a100,
   riscv64,
   unknown_riscv64,
 

@@ -76,6 +76,10 @@ enum uarch get_uarch_inner() {
   // arm64
   int implementer = 0;
   int part = 0;
+  // riscv64
+  unsigned long mvendorid = 0;
+  unsigned long marchid = 0;
+
   bool sve = false;
   bool avx512f = false;
   bool avx2 = false;
@@ -115,6 +119,12 @@ enum uarch get_uarch_inner() {
         return power8;
       } else if (key == "cpu" && value == " POWER9, altivec supported") {
         return power9;
+      } else if (key == "mvendorid") {
+        if (mvendorid == 0)
+          mvendorid = std::stoul(value, nullptr, 16);
+      } else if (key == "marchid") {
+        if (marchid == 0)
+          marchid = std::stoul(value, nullptr, 16);
       }
     }
   }
@@ -218,6 +228,15 @@ enum uarch get_uarch_inner() {
   } else if (implementer == 0x48 && part == 0xd01) {
     fprintf(stderr, "Hisilicon TSV110 detected\n");
     return tsv110;
+  }
+
+  // riscv64
+  if (mvendorid == 0x710 && marchid == 0x8000000058000002) {
+    fprintf(stderr, "Spacemit X100 detected\n");
+    return spacemit_x100;
+  } else if (mvendorid == 0x710 && marchid == 0x8000000041000002) {
+    fprintf(stderr, "Spacemit A100 detected\n");
+    return spacemit_a100;
   }
 
 #ifdef __APPLE__

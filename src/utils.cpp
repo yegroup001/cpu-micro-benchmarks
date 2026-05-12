@@ -984,6 +984,8 @@ void add_gadget(FILE *fp, const char *format, ...) {
   fprintf(fp, ".dc.a ");
 #elif defined(__loongarch__)
   fprintf(fp, ".dc.a ");
+#elif defined(__riscv)
+  fprintf(fp, ".dword ");
 #endif
   vfprintf(fp, format, args);
   fprintf(fp, "\n");

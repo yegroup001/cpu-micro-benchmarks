@@ -365,6 +365,79 @@ static inline uint64_t read_perf_counter(unsigned int counter) {
 
   return 0;
 }
+#elif defined(__riscv)
+#define ARRAY_SIZE(arr) (sizeof(arr) / sizeof(arr[0]))
+
+#define CSR_READ(n, csr)                                                       \
+  static uint64_t read_csr_##n(void) {                                         \
+    uint64_t val;                                                              \
+    asm volatile("csrr %0, " #csr : "=r"(val));                                \
+    return val;                                                                \
+  }
+
+static uint64_t read_cycle(void) {
+  uint64_t val;
+  asm volatile("rdcycle %0" : "=r"(val));
+  return val;
+}
+static uint64_t read_time(void) {
+  uint64_t val;
+  asm volatile("rdtime %0" : "=r"(val));
+  return val;
+}
+static uint64_t read_instret(void) {
+  uint64_t val;
+  asm volatile("rdinstret %0" : "=r"(val));
+  return val;
+}
+
+CSR_READ(3, 0xC03)
+CSR_READ(4, 0xC04)
+CSR_READ(5, 0xC05)
+CSR_READ(6, 0xC06)
+CSR_READ(7, 0xC07)
+CSR_READ(8, 0xC08)
+CSR_READ(9, 0xC09)
+CSR_READ(10, 0xC0A)
+CSR_READ(11, 0xC0B)
+CSR_READ(12, 0xC0C)
+CSR_READ(13, 0xC0D)
+CSR_READ(14, 0xC0E)
+CSR_READ(15, 0xC0F)
+CSR_READ(16, 0xC10)
+CSR_READ(17, 0xC11)
+CSR_READ(18, 0xC12)
+CSR_READ(19, 0xC13)
+CSR_READ(20, 0xC14)
+CSR_READ(21, 0xC15)
+CSR_READ(22, 0xC16)
+CSR_READ(23, 0xC17)
+CSR_READ(24, 0xC18)
+CSR_READ(25, 0xC19)
+CSR_READ(26, 0xC1A)
+CSR_READ(27, 0xC1B)
+CSR_READ(28, 0xC1C)
+CSR_READ(29, 0xC1D)
+CSR_READ(30, 0xC1E)
+CSR_READ(31, 0xC1F)
+
+static inline uint64_t read_perf_counter(unsigned int counter) {
+  static uint64_t (*const read_f[])(void) = {
+      read_cycle,    read_time,     read_instret,  read_csr_3,
+      read_csr_4,    read_csr_5,    read_csr_6,    read_csr_7,
+      read_csr_8,    read_csr_9,    read_csr_10,   read_csr_11,
+      read_csr_12,   read_csr_13,   read_csr_14,   read_csr_15,
+      read_csr_16,   read_csr_17,   read_csr_18,   read_csr_19,
+      read_csr_20,   read_csr_21,   read_csr_22,   read_csr_23,
+      read_csr_24,   read_csr_25,   read_csr_26,   read_csr_27,
+      read_csr_28,   read_csr_29,   read_csr_30,   read_csr_31,
+  };
+
+  if (counter < ARRAY_SIZE(read_f))
+    return (read_f[counter])();
+
+  return 0;
+}
 #else
 static inline uint64_t read_perf_counter(unsigned int counter) { return 0; }
 #endif

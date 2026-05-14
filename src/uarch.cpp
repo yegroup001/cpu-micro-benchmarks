@@ -225,6 +225,12 @@ enum uarch get_uarch_inner() {
   } else if (implementer == 0x41 && part == 0xd83) {
     fprintf(stderr, "ARM Neoverse V3 detected\n");
     return neoverse_v3;
+  } else if (implementer == 0x41 && part == 0xd81) {
+    fprintf(stderr, "ARM Cortex A720 detected\n");
+    return cortex_a720;
+  } else if (implementer == 0x41 && part == 0xd82) {
+    fprintf(stderr, "ARM Cortex X4 detected\n");
+    return cortex_x4;
   } else if (implementer == 0x48 && part == 0xd01) {
     fprintf(stderr, "Hisilicon TSV110 detected\n");
     return tsv110;

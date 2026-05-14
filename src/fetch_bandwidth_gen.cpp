@@ -100,6 +100,24 @@ int main(int argc, char *argv[]) {
 
     fprintf(fp, "\t2:\n");
     fprintf(fp, "\tblr\n");
+#elif defined(__riscv)
+    fprintf(fp, ".global fetch_bandwidth_%d\n", size);
+    fprintf(fp, ".align 4\n");
+    fprintf(fp, "fetch_bandwidth_%d:\n", size);
+
+    fprintf(fp, "\t.balign 4096\n");
+    fprintf(fp, "\t1:\n");
+
+    for (int i = 0; i < size / 4 - 5; i++) {
+      fprintf(fp, "\tnop\n");
+    }
+    fprintf(fp, "\taddi a0, a0, -1\n");
+    fprintf(fp, "\tbeqz a0, 2f\n");
+    fprintf(fp, "\tlla t0, 1b\n");
+    fprintf(fp, "\tjr t0\n");
+    fprintf(fp, "\t2:\n");
+
+    fprintf(fp, "\tret\n");
 #endif
   }
 

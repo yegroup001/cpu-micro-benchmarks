@@ -122,6 +122,31 @@ int main(int argc, char *argv[]) {
       fprintf(fp, "\tbne 1b\n");
 
       fprintf(fp, "\tblr\n");
+#elif defined(__riscv)
+      int page_size = 4096;
+      fprintf(fp, ".balign %d\n", page_size);
+      if (pattern == 0) {
+        fprintf(fp, "\t.rept %d\n", (page_size - 4) / 4);
+        fprintf(fp, "\tnop\n");
+        fprintf(fp, "\t.endr\n");
+
+        fprintf(fp, "1:\n");
+        fprintf(fp, "\tnop\n");
+
+        for (int i = 0; i < size - 3; i++) {
+          fprintf(fp, "\tnop\n");
+        }
+      } else {
+        fprintf(fp, "1:\n");
+        for (int i = 0; i < size - 2; i++) {
+          fprintf(fp, "\tnop\n");
+        }
+      }
+
+      fprintf(fp, "\taddi a0, a0, -1\n");
+      fprintf(fp, "\tbnez a0, 1b\n");
+
+      fprintf(fp, "\tret\n");
 #endif
     }
   }

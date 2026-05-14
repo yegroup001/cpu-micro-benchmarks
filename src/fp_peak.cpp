@@ -33,6 +33,22 @@ int main(int argc, char *argv[]) {
       0,            // ?-bit SP
       0,            // ?-bit DP
   };
+#elif defined(__riscv)
+  int num_patterns = 6;
+  char patterns[][32] = {
+      "SP scalar FMADD", "DP scalar FMADD",
+      "xxxx-bit SP vector", "xxxx-bit DP vector",
+      "xxxx-bit SP vector", "xxxx-bit DP vector",
+  };
+
+  int coef[] = {
+      2,            // SP scalar: 1 FMA = 2 FLOPs
+      2,            // DP scalar: 1 FMA = 2 FLOPs
+      0,            // SP vector: VL-dependent
+      0,            // DP vector: VL-dependent
+      0,            // SP vector: VL-dependent
+      0,            // DP vector: VL-dependent
+  };
 #else
   int num_patterns = 4;
   const char *patterns[] = {
@@ -74,6 +90,28 @@ int main(int argc, char *argv[]) {
       asm __volatile__(".arch armv9-a+sve\ncntd %0" : "=r"(len));
       sprintf(patterns[pattern], "%ld-bit DP SVE", len * 64);
       coef[pattern] = len * 2;
+    }
+#elif defined(__riscv)
+    if (pattern == 2) {
+      uint64_t vl = 0;
+      asm __volatile__(".option arch, +v\nvsetvli %0, x0, e32, m1, ta, ma" : "=r"(vl));
+      sprintf(patterns[pattern], "%lu-elem SP vector", vl);
+      coef[pattern] = vl * 2;
+    } else if (pattern == 3) {
+      uint64_t vl = 0;
+      asm __volatile__(".option arch, +v\nvsetvli %0, x0, e64, m1, ta, ma" : "=r"(vl));
+      sprintf(patterns[pattern], "%lu-elem DP vector", vl);
+      coef[pattern] = vl * 2;
+    } else if (pattern == 4) {
+      uint64_t vl = 0;
+      asm __volatile__(".option arch, +v\nvsetvli %0, x0, e32, m1, ta, ma" : "=r"(vl));
+      sprintf(patterns[pattern], "%lu-elem SP vector", vl);
+      coef[pattern] = vl * 2;
+    } else if (pattern == 5) {
+      uint64_t vl = 0;
+      asm __volatile__(".option arch, +v\nvsetvli %0, x0, e64, m1, ta, ma" : "=r"(vl));
+      sprintf(patterns[pattern], "%lu-elem DP vector", vl);
+      coef[pattern] = vl * 2;
     }
 #endif
 

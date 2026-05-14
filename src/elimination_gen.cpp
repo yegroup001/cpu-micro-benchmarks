@@ -180,6 +180,71 @@ int main(int argc, char *argv[]) {
     fprintf(fp, "\tbne 1b\n");
 
     fprintf(fp, "\tret\n");
+#elif defined(__riscv)
+    // caller-saved integer regs: t0-t6 (x5-x7,x28-x31) + a2 (x12)
+    static const int r[8] = {5, 6, 7, 28, 29, 30, 31, 13};
+    // caller-saved vector regs: v0-v7, v8-v15 (are all caller-saved in V ext)
+    // caller-saved fp regs: ft0-ft7 (f0-f7), ft8-ft11 (f28-f31), fa0-fa7 (f10-f17)
+    fprintf(fp, "\t1:\n");
+
+    for (int i = 0; i < repeat; i++) {
+      if (pattern == 0) {
+        fprintf(fp, "\tadd x%d, x%d, x%d\n", r[(i + 1) % 8],
+                r[(i + 1) % 8], r[i % 8]);
+      } else if (pattern == 1) {
+        fprintf(fp, "\tadd x%d, a1, a2\n", r[i % 8]);
+      } else if (pattern == 2) {
+        fprintf(fp, "\taddi x%d, x%d, 0\n", r[(i + 1) % 8], r[i % 8]);
+      } else if (pattern == 3) {
+        fprintf(fp, "\taddi x%d, a1, 0\n", r[1 + (i % 7)]);
+      } else if (pattern == 4) {
+        fprintf(fp, "\txor x%d, x%d, x%d\n", r[(i + 1) % 8], r[i % 8],
+                r[i % 8]);
+      } else if (pattern == 5) {
+        fprintf(fp, "\tsub x%d, x%d, x%d\n", r[(i + 1) % 8], r[i % 8],
+                r[i % 8]);
+      } else if (pattern == 6) {
+        fprintf(fp, "\taddi x%d, zero, 0\n", r[i % 8]);
+      } else if (pattern == 7) {
+        fprintf(fp, "\taddi x%d, zero, 1\n", r[i % 8]);
+      } else if (pattern == 8) {
+        fprintf(fp, "\taddi x%d, zero, 2\n", r[i % 8]);
+      } else if (pattern == 9) {
+        fprintf(fp, "\taddi x%d, zero, 1024\n", r[i % 8]);
+      } else if (pattern == 10) {
+        if (i == 0)
+          fprintf(fp, "\tli t0, 8\n\tvsetvli zero, t0, e32, m1, ta, ma\n");
+        fprintf(fp, "\tvmv.v.v v%d, v%d\n", (i + 1) % 8, i % 8);
+      } else if (pattern == 11) {
+        if (i == 0)
+          fprintf(fp, "\tli t0, 8\n\tvsetvli zero, t0, e32, m1, ta, ma\n");
+        fprintf(fp, "\tvmv.v.v v%d, v8\n", 1 + (i % 7));
+      } else if (pattern == 12) {
+        if (i == 0)
+          fprintf(fp, "\tli t0, 8\n\tvsetvli zero, t0, e32, m1, ta, ma\n");
+        fprintf(fp, "\tvxor.vv v%d, v%d, v%d\n", (i + 1) % 8,
+                i % 8, i % 8);
+      } else if (pattern == 13) {
+        if (i == 0)
+          fprintf(fp, "\tli t0, 8\n\tvsetvli zero, t0, e32, m1, ta, ma\n");
+        fprintf(fp, "\tvsub.vv v%d, v%d, v%d\n", (i + 1) % 8,
+                i % 8, i % 8);
+      } else if (pattern == 14) {
+        if (i == 0)
+          fprintf(fp, "\tli t0, 8\n\tvsetvli zero, t0, e32, m1, ta, ma\n");
+        fprintf(fp, "\tvmv.v.i v%d, 0\n", (i + 1) % 8);
+      } else if (pattern == 15) {
+        fprintf(fp, "\tnop\n");
+      }
+    }
+
+    fprintf(fp, "\taddi a0, a0, -1\n");
+    fprintf(fp, "\tbeqz a0, 2f\n");
+    fprintf(fp, "\tlla a2, 1b\n");
+    fprintf(fp, "\tjr a2\n");
+    fprintf(fp, "\t2:\n");
+
+    fprintf(fp, "\tret\n");
 #endif
   }
 

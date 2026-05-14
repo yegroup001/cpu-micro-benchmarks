@@ -10,6 +10,8 @@ int main(int argc, char *argv[]) {
   int max_size = 800;
 #ifdef HOST_AARCH64
   int num_patterns = 5;
+#elif defined(__riscv)
+  int num_patterns = 5;
 #else
   int num_patterns = 8;
 #endif
@@ -156,6 +158,46 @@ int main(int argc, char *argv[]) {
 
       fprintf(fp, "\tsubs x2, x2, #1\n");
       fprintf(fp, "\tbne 1b\n");
+
+      fprintf(fp, "\tret\n");
+#elif defined(__riscv)
+      // caller-saved test regs: t3-t6 (x28-x31), a3-a6 (x13-x16)
+      static const int tr[8] = {28, 29, 30, 31, 13, 14, 15, 16};
+      // caller-saved fp test regs: f0-f7 (ft0-ft7) are all caller-saved
+      static const int fpr[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+      fprintf(fp, "\tld t0, 0(a0)\n");
+      fprintf(fp, "\tld t1, 0(a1)\n");
+
+      fprintf(fp, "\t1:\n");
+
+      fprintf(fp, "\tld t0, 0(t0)\n");
+
+      for (int j = 0; j < size; j++) {
+        if (pattern == 0) {
+          fprintf(fp, "\taddw x%d, x%d, t2\n", tr[j % 8], tr[j % 8]);
+        } else if (pattern == 1) {
+          fprintf(fp, "\tadd x%d, x%d, t2\n", tr[j % 8], tr[j % 8]);
+        } else if (pattern == 2) {
+          fprintf(fp, "\taddi zero, zero, 0\n");
+        } else if (pattern == 3) {
+          fprintf(fp, "\taddi x%d, zero, 0\n", tr[j % 8]);
+        } else if (pattern == 4) {
+          fprintf(fp, "\tfadd.s f%d, f%d, f31\n", fpr[j % 8], fpr[j % 8]);
+        }
+      }
+
+      fprintf(fp, "\tld t1, 0(t1)\n");
+
+      fprintf(fp, "\tfence iorw, iorw\n");
+
+      fprintf(fp, "\taddi a2, a2, -1\n");
+      fprintf(fp, "\tbeqz a2, 2f\n");
+      fprintf(fp, "\tlla a7, 1b\n");
+      fprintf(fp, "\tjr a7\n");
+      fprintf(fp, "\t2:\n");
+
+      fprintf(fp, "\tsd t0, 0(a0)\n");
+      fprintf(fp, "\tsd t1, 0(a1)\n");
 
       fprintf(fp, "\tret\n");
 #endif

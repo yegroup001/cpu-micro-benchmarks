@@ -48,6 +48,10 @@ int main(int argc, char *argv[]) {
       // use int div for fp, otherwise fp sqrt
       bool long_latency_div =
           (inst_pattern == 5) || (inst_pattern == 9) || (inst_pattern == 10);
+#elif defined(__riscv)
+      bool long_latency_div =
+          (inst_pattern == 5) || (inst_pattern == 9) || (inst_pattern == 10);
+      bool long_latency_load = false;
 #endif
       bool has_branch = true;
 
@@ -523,6 +527,143 @@ int main(int argc, char *argv[]) {
       fprintf(fp, "\tstr x4, [x1]\n");
 
       fprintf(fp, "\tadd sp, sp, #0x100\n");
+      fprintf(fp, "\tret\n");
+#elif defined(__riscv)
+      // caller-saved dependent regs: a3-a6 (x13-x16)
+      // caller-saved independent regs: a7 (x17), t2 (x7)
+      // save s2,s3 for 2 more independent regs
+      static const int dep_r[4] = {13, 14, 15, 16};
+      static const int indep_r[4] = {17, 7, 18, 19};
+      // caller-saved fp regs for dependent: f0-f3
+      // caller-saved fp regs for independent: f4-f7
+      static const int dep_fp[4] = {1, 2, 3, 4};
+      static const int indep_fp[4] = {5, 6, 28, 29};
+
+      fprintf(fp, "\taddi sp, sp, -288\n");
+      fprintf(fp, "\tsd s2, 256(sp)\n");
+      fprintf(fp, "\tsd s3, 272(sp)\n");
+      fprintf(fp, "\tld t0, 0(a0)\n");
+      fprintf(fp, "\tld t1, 0(a1)\n");
+
+      fprintf(fp, "\tli t3, 2\n");
+      fprintf(fp, "\tli t4, 2\n");
+      fprintf(fp, "\tli t5, 1\n");
+      fprintf(fp, "\tfcvt.d.l f0, t5\n");
+
+      fprintf(fp, "\t1:\n");
+
+      if (long_latency_div) {
+        for (int j = 0; j < div_count; j++) {
+          fprintf(fp, "\tdiv t3, t0, t3\n");
+        }
+        if (has_branch) {
+          fprintf(fp, "\tbeqz t3, 2f\n");
+        }
+      } else {
+        for (int j = 0; j < sqrt_count; j++) {
+          fprintf(fp, "\tfsqrt.d f0, f0\n");
+        }
+        if (has_branch) {
+          fprintf(fp, "\tfmv.x.d t5, f0\n");
+          fprintf(fp, "\tbeqz t5, 2f\n");
+        }
+      }
+
+      for (int j = 0; j < max_size; j++) {
+        if (j == 0) {
+          if (long_latency_div) {
+            fprintf(fp, "\tfmv.d.x f0, t3\n");
+            fprintf(fp, "\tmv t5, t3\n");
+          } else {
+            fprintf(fp, "\tfcvt.w.d t5, f0\n");
+          }
+        }
+        if (inst_pattern == 0) {
+          if (j < size) {
+            fprintf(fp, "\tslli t6, t5, 3\n");
+            fprintf(fp, "\tadd t6, sp, t6\n");
+            fprintf(fp, "\tld x%d, 0(t6)\n", dep_r[j % 4]);
+          } else if (has_independent) {
+            fprintf(fp, "\tld x%d, 0(sp)\n", indep_r[j % 4]);
+            if (j == size + 32)
+              break;
+          }
+        } else if (inst_pattern == 1) {
+          if (j < size) {
+            fprintf(fp, "\tslli t6, t5, 3\n");
+            fprintf(fp, "\tadd t6, sp, t6\n");
+            fprintf(fp, "\tsd x%d, 0(t6)\n", dep_r[j % 4]);
+          } else if (has_independent) {
+            fprintf(fp, "\tsd x%d, 0(sp)\n", indep_r[j % 4]);
+            if (j == size + 32)
+              break;
+          }
+        } else if (inst_pattern == 2) {
+          if (j < size) {
+            fprintf(fp, "\tsd t5, 0(sp)\n");
+          } else if (has_independent) {
+            fprintf(fp, "\tsd x%d, 0(sp)\n", indep_r[j % 4]);
+            if (j == size + 32)
+              break;
+          }
+        } else if (inst_pattern == 3) {
+          if (j < size - 3) {
+            fprintf(fp, "\tadd x%d, x%d, t5\n", dep_r[j % 4], dep_r[j % 4]);
+          } else if (has_independent) {
+            fprintf(fp, "\tadd x%d, x%d, t1\n", indep_r[j % 4], indep_r[j % 4]);
+            if (j == size + 32)
+              break;
+          }
+        } else if (inst_pattern == 4) {
+          if (j < size) {
+            fprintf(fp, "\tmul x%d, x%d, t5\n", dep_r[j % 4], dep_r[j % 4]);
+          } else if (has_independent) {
+            fprintf(fp, "\tmul x%d, x%d, t1\n", indep_r[j % 4], indep_r[j % 4]);
+            if (j == size + 32)
+              break;
+          }
+        } else if (inst_pattern == 5) {
+          if (j < size) {
+            fprintf(fp, "\tfadd.d f%d, f%d, f0\n", dep_fp[j % 4], dep_fp[j % 4]);
+          } else if (has_independent) {
+            fprintf(fp, "\tfadd.d f%d, f%d, f7\n", indep_fp[j % 4], indep_fp[j % 4]);
+          }
+        } else if (inst_pattern >= 6 && inst_pattern < 13) {
+          if (j < size) {
+            fprintf(fp, "\tadd x%d, x%d, t5\n", dep_r[j % 4], dep_r[j % 4]);
+          } else if (has_independent) {
+            fprintf(fp, "\tadd x%d, x%d, t1\n", indep_r[j % 4], indep_r[j % 4]);
+            if (j == size + 32)
+              break;
+          }
+        }
+      }
+
+      if (long_latency_div) {
+        for (int j = 0; j < div_count; j++) {
+          fprintf(fp, "\tdiv t4, t0, t4\n");
+        }
+      } else {
+        for (int j = 0; j < sqrt_count; j++) {
+          fprintf(fp, "\tfsqrt.d f1, f1\n");
+        }
+      }
+      fprintf(fp, "\t2:\n");
+
+      fprintf(fp, "\tfence iorw, iorw\n");
+
+      fprintf(fp, "\taddi a2, a2, -1\n");
+      fprintf(fp, "\tbeqz a2, 3f\n");
+      fprintf(fp, "\tlla t6, 1b\n");
+      fprintf(fp, "\tjr t6\n");
+      fprintf(fp, "\t3:\n");
+
+      fprintf(fp, "\tsd t0, 0(a0)\n");
+      fprintf(fp, "\tsd t1, 0(a1)\n");
+
+      fprintf(fp, "\tld s2, 256(sp)\n");
+      fprintf(fp, "\tld s3, 272(sp)\n");
+      fprintf(fp, "\taddi sp, sp, 288\n");
       fprintf(fp, "\tret\n");
 #endif
     }

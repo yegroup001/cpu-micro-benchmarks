@@ -27,6 +27,8 @@ int main(int argc, char *argv[]) {
   assert(fp);
 #ifdef HOST_AARCH64
   int num_patterns = 6;
+#elif defined(__riscv)
+  int num_patterns = 6;
 #else
   int num_patterns = 4;
 #endif
@@ -82,6 +84,48 @@ int main(int argc, char *argv[]) {
     fprintf(fp, "\tldp q12, q13, [sp, #0x40]\n");
     fprintf(fp, "\tldp q14, q15, [sp, #0x60]\n");
     fprintf(fp, "\tadd sp, sp, #0x100\n");
+    fprintf(fp, "\tret\n");
+#endif
+#if defined(__riscv)
+    // caller-saved fp regs: ft0-ft7(f0-f7), fa0-fa7(f10-f17), ft8-ft11(f28-f31)
+    // we need 16 consecutive-mapped caller-saved fp regs for scalar patterns
+    static const int fp_r[16] = {3, 4, 5, 6, 7, 10, 11, 12, 13, 14, 15, 16, 17, 28, 29, 30};
+    // all v regs are caller-saved in V extension ABI
+    if (pattern >= 2 && pattern <= 5) {
+      int sew_bits = (pattern % 2 == 0) ? 32 : 64;
+      int vl;
+      if (pattern <= 3) {
+        vl = sew_bits == 32 ? 4 : 2;
+      } else {
+        vl = sew_bits == 32 ? 8 : 4;
+      }
+      fprintf(fp, "\tli t0, %d\n", vl);
+      fprintf(fp, "\tvsetvli zero, t0, e%d, m1, ta, ma\n", sew_bits);
+    }
+
+    fprintf(fp, "\t1:\n");
+    for (int i = 0; i < repeat; i++) {
+      if (pattern == 0) {
+        fprintf(fp, "\tfmadd.s f%d, f0, f1, f2\n", fp_r[i % 16]);
+      } else if (pattern == 1) {
+        fprintf(fp, "\tfmadd.d f%d, f0, f1, f2\n", fp_r[i % 16]);
+      } else if (pattern == 2) {
+        fprintf(fp, "\tvfmadd.vv v%d, v0, v1\n", (i % 16) + 2);
+      } else if (pattern == 3) {
+        fprintf(fp, "\tvfmadd.vv v%d, v0, v1\n", (i % 16) + 2);
+      } else if (pattern == 4) {
+        fprintf(fp, "\tvfmadd.vv v%d, v0, v1\n", (i % 16) + 2);
+      } else if (pattern == 5) {
+        fprintf(fp, "\tvfmadd.vv v%d, v0, v1\n", (i % 16) + 2);
+      }
+    }
+
+    fprintf(fp, "\taddi a0, a0, -1\n");
+    fprintf(fp, "\tbeqz a0, 2f\n");
+    fprintf(fp, "\tlla t0, 1b\n");
+    fprintf(fp, "\tjr t0\n");
+    fprintf(fp, "\t2:\n");
+
     fprintf(fp, "\tret\n");
 #endif
 #if defined(HOST_AMD64)

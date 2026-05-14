@@ -75,6 +75,10 @@ DEFINE_COUNTER_RANGE(llc_loads, all, PERF_TYPE_HARDWARE, PERF_COUNT_HW_CACHE_REF
 DEFINE_COUNTER_RANGE(branch_misses, all, PERF_TYPE_HARDWARE,
                      PERF_COUNT_HW_BRANCH_MISSES)
 
+// conditional branch mispredictions
+DEFINE_COUNTER_RANGE(cond_branch_misses, all, PERF_TYPE_HARDWARE,
+                     PERF_COUNT_HW_BRANCH_MISSES)
+
 // counter per cycle
 DEFINE_COMPUTED_COUNTER_RANGE(instructions_per_cycle, counter_per_cycle, all,
                               compute_counter_per_cycle, instructions, cycles)

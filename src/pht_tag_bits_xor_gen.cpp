@@ -244,6 +244,216 @@ int main(int argc, char *argv[]) {
         fprintf(fp, "\t%s_end_loop:\n", gadget_name);
 
         fprintf(fp, "\tret\n");
+#elif defined(__riscv)
+        fprintf(fp, "\t%s_loop_begin:\n", gadget_name);
+
+        // read random value
+        fprintf(fp, "\tslli t3, a0, 2\n");
+        fprintf(fp, "\tadd t3, a1, t3\n");
+        fprintf(fp, "\tlw t2, 0(t3)\n");
+
+        // loop to shift phr
+        for (int i = 0; i < 200; i++) {
+          fprintf(fp, "\tj 1f\n");
+          fprintf(fp, "\t1:\n");
+        }
+
+        if (inject_target) {
+          // inject t2 to phr LSB using T[2]
+          fprintf(fp, "\tbnez t2, 101f\n");
+          fprintf(fp, "\tlla t0, %s_first_target_1\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+          fprintf(fp, "\t101:\n");
+          fprintf(fp, "\tlla t0, %s_first_target_2\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+          fprintf(fp, "\t.balign 8\n");
+          fprintf(fp, "\t%s_first_target_1:\n", gadget_name);
+          fprintf(fp, "\tnop\n");
+          fprintf(fp, "\t%s_first_target_2:\n", gadget_name);
+        } else {
+          // inject t2 to phr LSB using B[2]
+          fprintf(fp, "\tbnez t2, 101f\n");
+          fprintf(fp, "\tlla t0, %s_first_target_1\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+          fprintf(fp, "\t101:\n");
+          fprintf(fp, "\tlla t0, %s_first_target_2\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+          fprintf(fp, "\t.balign 8\n");
+          fprintf(fp, "\t%s_first_target_1:\n", gadget_name);
+          fprintf(fp, "\tlla t0, %s_first_target_3\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+          fprintf(fp, "\t%s_first_target_2:\n", gadget_name);
+          fprintf(fp, "\tlla t0, %s_first_target_4\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+
+          fprintf(fp, "\t.balign 16\n");
+          fprintf(fp, "\t%s_first_target_3:\n", gadget_name);
+          fprintf(fp, "\tlla t0, %s_first_target_5\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+          fprintf(fp, "\tnop\n");
+          fprintf(fp, "\t%s_first_target_4:\n", gadget_name);
+          fprintf(fp, "\tnop\n");
+          fprintf(fp, "\tlla t0, %s_first_target_5\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+
+          fprintf(fp, "\t%s_first_target_5:\n", gadget_name);
+        }
+
+        // loop to shift phr by dummybranches times
+        for (int i = 0; i < dummy_branches - (branch_align >= 7 ? 2 : 3); i++) {
+          if (i < 0) break;
+          fprintf(fp, "\tj 2f\n");
+          fprintf(fp, "\t2:\n");
+        }
+
+        // strategy #1: branch_align >= 7
+        if (branch_align >= 7) {
+          // 1. B same, T[6] differs
+          fprintf(fp, "\tandi t4, a0, 1\n");
+          fprintf(fp, "\tbnez t4, 111f\n");
+          fprintf(fp, "\tlla t0, %s_target1\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+          fprintf(fp, "\t111:\n");
+          fprintf(fp, "\tlla t0, %s_target2\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+
+          fprintf(fp, "\t.balign %d\n", (1 << branch_align));
+          fprintf(fp, "\t%s_target1:\n", gadget_name);
+          fprintf(fp, "\tlla t0, %s_target3\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+          fprintf(fp, "\t.balign %d\n", (1 << (branch_align - 1)));
+          fprintf(fp, "\t%s_target2:\n", gadget_name);
+          fprintf(fp, "\tlla t0, %s_target4\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+
+          fprintf(fp, "\t.balign %d\n", (1 << (branch_align + 1)));
+          fprintf(fp, "\t%s_target3:\n", gadget_name);
+          fprintf(fp, "\tbnez t2, 112f\n");
+          fprintf(fp, "\t112:\n");
+          fprintf(fp, "\t%s_first_target:\n", gadget_name);
+          fprintf(fp, "\tlla t0, %s_branch_end\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+
+          fprintf(fp, "\t.balign %d\n", (1 << branch_align));
+          fprintf(fp, "\t%s_target4:\n", gadget_name);
+          fprintf(fp, "\tbnez t2, 113f\n");
+          fprintf(fp, "\t113:\n");
+          fprintf(fp, "\t%s_second_target:\n", gadget_name);
+          fprintf(fp, "\tlla t0, %s_branch_end\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+        }
+
+        // strategy #2: branch_align <= 5
+        if (branch_align <= 5) {
+          fprintf(fp, "\tandi t4, a0, 1\n");
+          fprintf(fp, "\tbnez t4, 121f\n");
+          fprintf(fp, "\tlla t0, %s_target1\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+          fprintf(fp, "\t121:\n");
+          fprintf(fp, "\tlla t0, %s_target2\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+
+          fprintf(fp, "\t.balign %d\n", (1 << branch_align));
+          fprintf(fp, "\t%s_target1:\n", gadget_name);
+          fprintf(fp, "\tlla t0, %s_target3\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+          fprintf(fp, "\t.balign %d\n", (1 << (branch_align - 1)));
+          fprintf(fp, "\t%s_target2:\n", gadget_name);
+          fprintf(fp, "\tlla t0, %s_target4\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+
+          fprintf(fp, "\t.balign %d\n", (1 << (branch_align + 1)));
+          fprintf(fp, "\t%s_target3:\n", gadget_name);
+          fprintf(fp, "\t.rept %d\n", ((1 << (branch_align - 1))) / 4);
+          fprintf(fp, "\tnop\n");
+          fprintf(fp, "\t.endr\n");
+          fprintf(fp, "\tlla t0, %s_target5\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+          fprintf(fp, "\t.balign %d\n", (1 << branch_align));
+          fprintf(fp, "\t.rept %d\n", ((1 << (branch_align - 1))) / 4);
+          fprintf(fp, "\tnop\n");
+          fprintf(fp, "\t.endr\n");
+          fprintf(fp, "\t%s_target4:\n", gadget_name);
+          fprintf(fp, "\tlla t0, %s_target6\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+
+          fprintf(fp, "\t.balign %d\n", (1 << (branch_align + 1)));
+          fprintf(fp, "\t%s_target5:\n", gadget_name);
+          fprintf(fp, "\tbnez t2, 122f\n");
+          fprintf(fp, "\t122:\n");
+          fprintf(fp, "\t%s_first_target:\n", gadget_name);
+          fprintf(fp, "\tlla t0, %s_branch_end\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+
+          fprintf(fp, "\t.balign %d\n", (1 << branch_align));
+          fprintf(fp, "\t%s_target6:\n", gadget_name);
+          fprintf(fp, "\tbnez t2, 123f\n");
+          fprintf(fp, "\t123:\n");
+          fprintf(fp, "\t%s_second_target:\n", gadget_name);
+          fprintf(fp, "\tlla t0, %s_branch_end\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+        }
+
+        // strategy #3: branch_align == 6
+        if (branch_align == 6) {
+          fprintf(fp, "\tandi t4, a0, 1\n");
+          fprintf(fp, "\tbnez t4, 131f\n");
+          fprintf(fp, "\tlla t0, %s_target1\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+          fprintf(fp, "\t131:\n");
+          fprintf(fp, "\tlla t0, %s_target2\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+
+          fprintf(fp, "\t.balign %d\n", (1 << 4));
+          fprintf(fp, "\t%s_target1:\n", gadget_name);
+          fprintf(fp, "\tlla t0, %s_target3\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+          fprintf(fp, "\t.balign %d\n", (1 << 3));
+          fprintf(fp, "\t%s_target2:\n", gadget_name);
+          fprintf(fp, "\tlla t0, %s_target4\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+
+          fprintf(fp, "\t.balign %d\n", (1 << 6));
+          fprintf(fp, "\t%s_target3:\n", gadget_name);
+          fprintf(fp, "\t.rept %d\n", ((1 << 5)) / 4);
+          fprintf(fp, "\tnop\n");
+          fprintf(fp, "\t.endr\n");
+          fprintf(fp, "\tlla t0, %s_target5\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+          fprintf(fp, "\t.rept %d\n", ((1 << 5) - (1 << 4) - 12) / 4);
+          fprintf(fp, "\tnop\n");
+          fprintf(fp, "\t.endr\n");
+          fprintf(fp, "\t%s_target4:\n", gadget_name);
+          fprintf(fp, "\tlla t0, %s_target6\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+
+          fprintf(fp, "\t.balign %d\n", (1 << 7));
+          fprintf(fp, "\t%s_target5:\n", gadget_name);
+          fprintf(fp, "\tbnez t2, 132f\n");
+          fprintf(fp, "\t132:\n");
+          fprintf(fp, "\t%s_first_target:\n", gadget_name);
+          fprintf(fp, "\tlla t0, %s_branch_end\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+
+          fprintf(fp, "\t.balign %d\n", (1 << 6));
+          fprintf(fp, "\t%s_target6:\n", gadget_name);
+          fprintf(fp, "\tbnez t2, 133f\n");
+          fprintf(fp, "\t133:\n");
+          fprintf(fp, "\t%s_second_target:\n", gadget_name);
+          fprintf(fp, "\tlla t0, %s_branch_end\n", gadget_name);
+          fprintf(fp, "\tjr t0\n");
+        }
+
+        fprintf(fp, "\t%s_branch_end:\n", gadget_name);
+
+        // loop end
+        fprintf(fp, "\taddi a0, a0, -1\n");
+        fprintf(fp, "\tbeqz a0, 199f\n");
+        fprintf(fp, "\tlla t0, %s_loop_begin\n", gadget_name);
+        fprintf(fp, "\tjr t0\n");
+        fprintf(fp, "\t199:\n");
+
+        fprintf(fp, "\tret\n");
 #endif
       }
     }

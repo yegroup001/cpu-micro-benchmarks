@@ -167,6 +167,79 @@ int main(int argc, char *argv[]) {
     fprintf(fp, "\tpop rax\n");
     fprintf(fp, "\tpop rbx\n");
     fprintf(fp, "\tret\n");
+#elif defined(__riscv)
+    fprintf(fp, ".global pht_index_tag_bits_%d\n", branch_align);
+    fprintf(fp, "pht_index_tag_bits_%d:\n", branch_align);
+    fprintf(fp, "\tpht_index_tag_bits_%d_loop_begin:\n", branch_align);
+
+    fprintf(fp, "\tslli t3, a0, 2\n");
+    fprintf(fp, "\tadd t3, a1, t3\n");
+    fprintf(fp, "\tlw t2, 0(t3)\n");
+
+    for (int i = 0; i < 200; i++) {
+      fprintf(fp, "\tj 1f\n");
+      fprintf(fp, "\t.balign 64\n");
+      fprintf(fp, "\t1:\n");
+    }
+
+    // inject t2 to phr LSB via indirect jump
+    fprintf(fp, "\tlla t0, pht_index_tag_bits_%d_first_target_1\n", branch_align);
+    fprintf(fp, "\tlla t1, pht_index_tag_bits_%d_first_target_2\n", branch_align);
+    fprintf(fp, "\tbnez t2, 101f\n");
+    fprintf(fp, "\tmv t0, t1\n");
+    fprintf(fp, "\t101:\n");
+    fprintf(fp, "\tjr t0\n");
+
+    int t_bit = 2;
+    fprintf(fp, "\t.balign %d\n", (1 << (t_bit + 1)));
+    fprintf(fp, "\tpht_index_tag_bits_%d_first_target_1:\n", branch_align);
+    for (int i = 0; i < (1 << t_bit) / 4; i++) {
+      fprintf(fp, "\tnop\n");
+    }
+    fprintf(fp, "\tpht_index_tag_bits_%d_first_target_2:\n", branch_align);
+
+    for (int i = 0; i < PHR_BRANCHES - 1; i++) {
+      fprintf(fp, "\tj 2f\n");
+      fprintf(fp, "\t.balign 64\n");
+      fprintf(fp, "\t2:\n");
+    }
+
+    // two conditional branches whose PCs differ in bit[branch_align]
+    // branch 1: bnez-like at aligned position
+    // branch 2: beqz-like at position offset by 2^branch_align
+    if (branch_align <= 11) {
+      // direct approach: conditional branches jump to shared target after both
+      fprintf(fp, "\t.balign %d\n", (1 << (branch_align + 1)));
+      fprintf(fp, "\tbnez t2, 103f\n");
+      fprintf(fp, "\t.rept %d\n", (((1 << branch_align) - 4) / 4));
+      fprintf(fp, "\tnop\n");
+      fprintf(fp, "\t.endr\n");
+      fprintf(fp, "\tbeqz t2, 103f\n");
+      fprintf(fp, "\t103:\n");
+    } else {
+      // inverted approach: short-range conditional + indirect with padding
+      fprintf(fp, "\t.balign %d\n", (1 << (branch_align + 1)));
+      fprintf(fp, "\tbnez t2, 103f\n");
+      fprintf(fp, "\tlla t0, pht_index_tag_bits_%d_branch_end\n", branch_align);
+      fprintf(fp, "\tjr t0\n");
+      fprintf(fp, "\t103:\n");
+      fprintf(fp, "\t.rept %d\n", (((1 << branch_align) - 16) / 4));
+      fprintf(fp, "\tnop\n");
+      fprintf(fp, "\t.endr\n");
+      fprintf(fp, "\tbeqz t2, 104f\n");
+      fprintf(fp, "\tlla t0, pht_index_tag_bits_%d_branch_end\n", branch_align);
+      fprintf(fp, "\tjr t0\n");
+      fprintf(fp, "\t104:\n");
+    }
+    fprintf(fp, "\tpht_index_tag_bits_%d_branch_end:\n", branch_align);
+
+    fprintf(fp, "\taddi a0, a0, -1\n");
+    fprintf(fp, "\tbeqz a0, 105f\n");
+    fprintf(fp, "\tlla t1, pht_index_tag_bits_%d_loop_begin\n", branch_align);
+    fprintf(fp, "\tjr t1\n");
+    fprintf(fp, "\t105:\n");
+
+    fprintf(fp, "\tret\n");
 #endif
   }
 

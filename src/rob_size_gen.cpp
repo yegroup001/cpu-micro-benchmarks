@@ -100,7 +100,10 @@ int main(int argc, char *argv[]) {
       fprintf(fp, "\tfence iorw, iorw\n");
     }
     fprintf(fp, "\taddi t2, t2, -1\n");
-    fprintf(fp, "\tbnez t2, 1b\n");
+    fprintf(fp, "\tbeqz t2, 2f\n");
+    fprintf(fp, "\tlla t0, 1b\n");
+    fprintf(fp, "\tjr t0\n");
+    fprintf(fp, "\t2:\n");
     fprintf(fp, "\tsd t0, 0(a0)\n");
     fprintf(fp, "\tsd t1, 0(a1)\n");
     fprintf(fp, "\tret\n");

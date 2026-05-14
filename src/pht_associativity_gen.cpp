@@ -320,6 +320,142 @@ int main(int argc, char *argv[]) {
               branch_align);
 
       fprintf(fp, "\tret\n");
+#elif defined(__riscv)
+      fprintf(fp, ".global pht_associativity_%d_%d\n", branches, branch_align);
+      fprintf(fp, "pht_associativity_%d_%d:\n", branches, branch_align);
+
+      fprintf(fp, "\tpht_associativity_%d_%d_loop_begin:\n", branches, branch_align);
+
+      // read random value
+      fprintf(fp, "\tslli t3, a0, 2\n");
+      fprintf(fp, "\tadd t3, a1, t3\n");
+      fprintf(fp, "\tlw t2, 0(t3)\n");
+
+      // loop to shift phr
+      for (int i = 0; i < 200; i++) {
+        fprintf(fp, "\tj 1f\n");
+        fprintf(fp, "\t1:\n");
+      }
+
+      // inject t2 to phr LSB via indirect jump
+      // targets differ in T[2]
+      fprintf(fp, "\tbnez t2, 101f\n");
+      fprintf(fp, "\tlla t0, pht_associativity_%d_%d_first_target_1\n",
+              branches, branch_align);
+      fprintf(fp, "\tjr t0\n");
+      fprintf(fp, "\t101:\n");
+      fprintf(fp, "\tlla t0, pht_associativity_%d_%d_first_target_2\n",
+              branches, branch_align);
+      fprintf(fp, "\tjr t0\n");
+      fprintf(fp, "\t.balign 8\n");
+      fprintf(fp, "\tpht_associativity_%d_%d_first_target_1:\n",
+              branches, branch_align);
+      fprintf(fp, "\tnop\n");
+      fprintf(fp, "\tpht_associativity_%d_%d_first_target_2:\n",
+              branches, branch_align);
+
+      // RISC-V doesn't have known third_bit; shift phr by a few branches
+      // we have 2 branches afterwards (stage2 conditional)
+      int third_bit_rv = PHR_BRANCHES;
+      bool extra_jump = branch_align >= 8;
+      for (int i = 0; i < third_bit_rv - (extra_jump ? 3 : 2); i++) {
+        fprintf(fp, "\tj 2f\n");
+        fprintf(fp, "\t2:\n");
+      }
+
+      // jump to stage1 branches via table
+      // (a0 / 4) %% branches -> stage1 branch index
+      fprintf(fp, "\tli t4, %d\n", branches);
+      fprintf(fp, "\tsrli t5, a0, 2\n");
+      fprintf(fp, "\trem t5, t5, t4\n");
+      fprintf(fp, "\tslli t5, t5, 3\n");
+      fprintf(fp, "\tlla t6, pht_associativity_%d_%d_stage1_branches\n",
+              branches, branch_align);
+      fprintf(fp, "\tadd t6, t6, t5\n");
+      fprintf(fp, "\tld t6, 0(t6)\n");
+      fprintf(fp, "\tjr t6\n");
+
+      // stage1 branches
+      fprintf(fp, "\t.balign %d\n", (1 << std::min(branch_align + 5, 20)));
+      for (int i = 0; i < branches; i++) {
+        if (extra_jump) {
+          fprintf(fp, "\t.balign %d\n", (1 << (branch_align - 2)));
+        } else {
+          fprintf(fp, "\t.balign %d\n", (1 << (branch_align - 1)));
+        }
+        fprintf(fp, "\tpht_associativity_%d_%d_stage1_%d:\n",
+                branches, branch_align, i);
+        if (extra_jump) {
+          fprintf(fp, "\tlla t0, pht_associativity_%d_%d_stage1_end\n",
+                  branches, branch_align);
+          fprintf(fp, "\tjr t0\n");
+        } else {
+          fprintf(fp, "\tnop\n");
+        }
+      }
+      fprintf(fp, "\tpht_associativity_%d_%d_stage1_end:\n",
+              branches, branch_align);
+
+      // jump to stage2 branches via table
+      fprintf(fp, "\tli t4, %d\n", branches);
+      fprintf(fp, "\tsrli t5, a0, 2\n");
+      fprintf(fp, "\trem t5, t5, t4\n");
+      fprintf(fp, "\tslli t5, t5, 3\n");
+      fprintf(fp, "\tlla t6, pht_associativity_%d_%d_stage2_branches\n",
+              branches, branch_align);
+      fprintf(fp, "\tadd t6, t6, t5\n");
+      fprintf(fp, "\tld t6, 0(t6)\n");
+      fprintf(fp, "\tjr t6\n");
+
+      // stage2 branches
+      fprintf(fp, "\t.balign %d\n", (1 << std::min(branch_align + 6, 20)));
+      for (int i = 0; i < branches; i++) {
+        fprintf(fp, "\t.balign %d\n", (1 << branch_align));
+        fprintf(fp, "\tpht_associativity_%d_%d_stage2_%d:\n",
+                branches, branch_align, i);
+        // conditional branch test: bnez/beqz to local label + indirect
+        if (i == 0) {
+          fprintf(fp, "\tbnez t2, 103f\n");
+        } else {
+          fprintf(fp, "\tbeqz t2, 103f\n");
+        }
+        fprintf(fp, "\t103:\n");
+        fprintf(fp, "\tlla t0, pht_associativity_%d_%d_branch_end\n",
+                branches, branch_align);
+        fprintf(fp, "\tjr t0\n");
+      }
+
+      // save tables in .data
+      fprintf(fp, "\t.data\n");
+      fprintf(fp, "\t.balign 8\n");
+      fprintf(fp, "\tpht_associativity_%d_%d_stage1_branches:\n",
+              branches, branch_align);
+      for (int i = 0; i < branches; i++) {
+        fprintf(fp, "\t.dword pht_associativity_%d_%d_stage1_%d\n",
+                branches, branch_align, i);
+      }
+
+      fprintf(fp, "\t.balign 8\n");
+      fprintf(fp, "\tpht_associativity_%d_%d_stage2_branches:\n",
+              branches, branch_align);
+      for (int i = 0; i < branches; i++) {
+        fprintf(fp, "\t.dword pht_associativity_%d_%d_stage2_%d\n",
+                branches, branch_align, i);
+      }
+      fprintf(fp, "\t.text\n");
+
+      fprintf(fp, "\tpht_associativity_%d_%d_branch_end:\n",
+              branches, branch_align);
+
+      // loop end
+      fprintf(fp, "\taddi a0, a0, -1\n");
+      fprintf(fp, "\tbeqz a0, 104f\n");
+      fprintf(fp, "\tlla t0, pht_associativity_%d_%d_loop_begin\n",
+              branches, branch_align);
+      fprintf(fp, "\tjr t0\n");
+      fprintf(fp, "\t104:\n");
+
+      fprintf(fp, "\tret\n");
 #endif
     }
   }

@@ -22,6 +22,8 @@ void register_file_size(FILE *fp) {
   int max_size = 800;
 #ifdef HOST_AARCH64
   int num_patterns = 5;
+#elif defined(__riscv)
+  int num_patterns = 5;
 #else
   int num_patterns = 8;
 #endif

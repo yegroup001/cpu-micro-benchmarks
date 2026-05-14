@@ -105,6 +105,42 @@ int main(int argc, char *argv[]) {
     fprintf(fp, "\tpop %%rcx\n");
     fprintf(fp, "\tpop %%rbx\n");
     fprintf(fp, "\tret\n");
+#elif defined(__riscv)
+    fprintf(fp, "\t1:\n");
+
+    fprintf(fp, "\tslli t3, a0, 2\n");
+    fprintf(fp, "\tadd t3, a1, t3\n");
+    fprintf(fp, "\tlw t2, 0(t3)\n");
+    fprintf(fp, "\tlla t0, phr_size_%d_first_target\n", size);
+    fprintf(fp, "\tslli t4, t2, 2\n");
+    fprintf(fp, "\tadd t0, t0, t4\n");
+    fprintf(fp, "\tjr t0\n");
+    fprintf(fp, "\tphr_size_%d_first_target:\n", size);
+    fprintf(fp, "\tnop\n");
+
+    for (int i = 0; i < size - 1; i++) {
+      fprintf(fp, "\tslli t3, t2, 2\n");
+      fprintf(fp, "\tadd t3, a1, t3\n");
+      fprintf(fp, "\tlw t2, 0(t3)\n");
+      fprintf(fp, "\tbnez a1, 2f\n");
+      fprintf(fp, "\t.balign 16\n");
+      fprintf(fp, "\t2:\n");
+    }
+
+    fprintf(fp, "\tslli t3, t2, 2\n");
+    fprintf(fp, "\tadd t3, a1, t3\n");
+    fprintf(fp, "\tlw t2, 0(t3)\n");
+    fprintf(fp, "\tsext.w t2, t2\n");
+    fprintf(fp, "\tbnez t2, 2f\n");
+    fprintf(fp, "\t2:\n");
+
+    fprintf(fp, "\taddi a0, a0, -1\n");
+    fprintf(fp, "\tbeqz a0, 3f\n");
+    fprintf(fp, "\tlla t0, 1b\n");
+    fprintf(fp, "\tjr t0\n");
+    fprintf(fp, "\t3:\n");
+
+    fprintf(fp, "\tret\n");
 #endif
   }
 

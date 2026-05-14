@@ -215,6 +215,97 @@ int main(int argc, char *argv[]) {
               target_toggle);
 
       fprintf(fp, "\tret\n");
+#elif defined(__riscv)
+      fprintf(fp, ".global phr_branch_target_xor_%d_%d\n", branch_toggle,
+              target_toggle);
+      fprintf(fp, "phr_branch_target_xor_%d_%d:\n", branch_toggle, target_toggle);
+
+      fprintf(fp, "\tphr_branch_target_xor_%d_%d_loop_begin:\n", branch_toggle,
+              target_toggle);
+
+      fprintf(fp, "\tslli t3, a0, 2\n");
+      fprintf(fp, "\tadd t3, a1, t3\n");
+      fprintf(fp, "\tlw t2, 0(t3)\n");
+
+      for (int i = 0; i < 300; i++) {
+        fprintf(fp, "\tj 1f\n");
+        fprintf(fp, "\t.balign 64\n");
+        fprintf(fp, "\t1:\n");
+      }
+
+      // two conditional branches whose PCs differ in bit[branch_toggle]
+      if (branch_toggle <= 11) {
+        // direct approach: conditional branches jump to local trampolines after
+        // both branches. Distance = 2^branch_toggle + ~16 bytes, within ±4KB
+        fprintf(fp, "\t.balign %d\n", (1 << (branch_toggle + 1)));
+        fprintf(fp, "\tbeqz t2, 101f\n");
+        fprintf(fp, "\t.rept %d\n", (((1 << branch_toggle) - 4) / 4));
+        fprintf(fp, "\tnop\n");
+        fprintf(fp, "\t.endr\n");
+        fprintf(fp, "\tbnez t2, 102f\n");
+        fprintf(fp, "\t101:\n");
+        fprintf(fp, "\tlla t0, phr_branch_target_xor_%d_%d_first_target\n",
+                branch_toggle, target_toggle);
+        fprintf(fp, "\tjr t0\n");
+        fprintf(fp, "\t102:\n");
+        fprintf(fp, "\tlla t0, phr_branch_target_xor_%d_%d_first_target_2\n",
+                branch_toggle, target_toggle);
+        fprintf(fp, "\tjr t0\n");
+      } else {
+        // inverted approach: for large branch_toggle, use short-range
+        // conditional + indirect jump trampolines with padding
+        fprintf(fp, "\t.balign %d\n", (1 << (branch_toggle + 1)));
+        fprintf(fp, "\tbnez t2, 101f\n");
+        fprintf(fp, "\tlla t0, phr_branch_target_xor_%d_%d_first_target\n",
+                branch_toggle, target_toggle);
+        fprintf(fp, "\tjr t0\n");
+        fprintf(fp, "\t101:\n");
+        fprintf(fp, "\t.rept %d\n", (((1 << branch_toggle) - 16) / 4));
+        fprintf(fp, "\tnop\n");
+        fprintf(fp, "\t.endr\n");
+        fprintf(fp, "\tbeqz t2, 102f\n");
+        fprintf(fp, "\tlla t0, phr_branch_target_xor_%d_%d_first_target_2\n",
+                branch_toggle, target_toggle);
+        fprintf(fp, "\tjr t0\n");
+        fprintf(fp, "\t102:\n");
+      }
+
+      // targets differ in bit[target_toggle]
+      fprintf(fp, "\t.balign 64\n");
+      fprintf(fp, "\t.balign %d\n", (1 << (target_toggle + 1)));
+      fprintf(fp, "\tphr_branch_target_xor_%d_%d_first_target:\n",
+              branch_toggle, target_toggle);
+      fprintf(fp, "\t.rept %d\n", (((1 << target_toggle)) / 4));
+      fprintf(fp, "\tnop\n");
+      fprintf(fp, "\t.endr\n");
+      fprintf(fp, "\tphr_branch_target_xor_%d_%d_first_target_2:\n",
+              branch_toggle, target_toggle);
+
+      fprintf(fp, "\t.balign 64\n");
+      for (int i = 0; i < 10; i++) {
+        fprintf(fp, "\tj 103f\n");
+        fprintf(fp, "\t.balign 64\n");
+        fprintf(fp, "\t103:\n");
+      }
+
+      fprintf(fp, "\t.balign 64\n");
+      fprintf(fp, "\tbeqz t2, 104f\n");
+      fprintf(fp, "\tlla t0, phr_branch_target_xor_%d_%d_second_target\n",
+              branch_toggle, target_toggle);
+      fprintf(fp, "\tjr t0\n");
+      fprintf(fp, "\t104:\n");
+      fprintf(fp, "\tphr_branch_target_xor_%d_%d_second_target:\n",
+              branch_toggle, target_toggle);
+
+      fprintf(fp, "\t.balign 64\n");
+      fprintf(fp, "\taddi a0, a0, -1\n");
+      fprintf(fp, "\tbeqz a0, 105f\n");
+      fprintf(fp, "\tlla t0, phr_branch_target_xor_%d_%d_loop_begin\n",
+              branch_toggle, target_toggle);
+      fprintf(fp, "\tjr t0\n");
+      fprintf(fp, "\t105:\n");
+
+      fprintf(fp, "\tret\n");
 #endif
     }
   }

@@ -994,7 +994,8 @@ void bind_to_core() {
   CPU_SET(core, &set);
   int res = sched_setaffinity(0, sizeof(set), &set);
   if (res == 0) {
-    fprintf(stderr, "Pinned to cpu %d\n", core);
+    fprintf(stderr, "Pinned to cpu %d (%s)\n", core,
+            uarch_to_string(get_uarch()));
   }
 #elif defined(__APPLE__) && !defined(IOS)
   int core = get_bind_core();

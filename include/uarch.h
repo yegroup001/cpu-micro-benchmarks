@@ -18,15 +18,31 @@ enum uarch {
   m4_ecore,
   // qualcomm
   oryon,
-  // arm
+  // arm — efficiency
+  cortex_a35,
   cortex_a53,
   cortex_a55,
+  cortex_a510,
+  cortex_a520,
+  // arm — mid performance
+  cortex_a57,
+  cortex_a72,
   cortex_a73,
+  cortex_a75,
+  cortex_a76,
+  cortex_a710,
+  cortex_a715,
+  cortex_a720,
+  cortex_a725,
+  // arm — big performance
   cortex_a77,
   cortex_a78,
-  cortex_a720,
   cortex_x1,
+  cortex_x2,
+  cortex_x3,
   cortex_x4,
+  cortex_x925,
+  // arm — server
   neoverse_n1,
   neoverse_v1,
   neoverse_n2,
@@ -34,14 +50,15 @@ enum uarch {
   neoverse_v3,
   // hisilicon
   tsv110,
-  tsv200m,
   unknown_arm64,
   arm64_begin = firestorm,
   arm64_end = unknown_arm64,
 
   // riscv64
+  spacemit_x60,
   spacemit_x100,
   spacemit_a100,
+  sifive_p550,
   riscv64,
   unknown_riscv64,
 
@@ -69,6 +86,7 @@ enum uarch {
   skylake,
   broadwell,
   whiskylake,
+  haswell,
   // amd
   zen1,
   zen2,
@@ -83,9 +101,15 @@ enum uarch {
   all_end = unknown_amd64,
 };
 
-// detect uarch
+// detect uarch of the current (bound) CPU
 enum uarch get_uarch();
+// detect uarch of a specific logical CPU
+enum uarch get_uarch_of_cpu(int cpu);
 // which core to bind
 int get_bind_core();
+// number of online CPUs
+int get_num_cores();
+// human-readable name
+const char *uarch_to_string(enum uarch u);
 
 #endif
